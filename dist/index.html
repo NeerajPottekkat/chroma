@@ -1,0 +1,2010 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Colour Check</title>
+<meta name="description" content="Check how well a shirt colour suits you. Runs entirely in your browser; photos never leave your device.">
+<meta name="theme-color" content="#EFEFEF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Colour Check">
+<style>
+/* Colour Check — styles. Mobile first; desktop split view from 900px wide (landscape). */
+:root {
+  --bg: #EFEFEF;
+  --card: #FFFFFF;
+  --ink: #161616;
+  --ink-2: #333333;
+  --muted: #555555;
+  --line: #D4D4D4;
+  --track: #E4E4E4;
+  --good: #1E7A4C; --good-bg: #E6EFE9; --good-ink: #155C39;
+  --warn: #B86B12; --warn-bg: #FFF1DC; --warn-ink: #7A4508; --tip-bg: #FFF6EA; --tip-ink: #5A3507;
+  --bad: #B3261E;  --bad-bg: #FCE8E6;  --bad-ink: #8C1D18;
+  --grey: #8A8A8A;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 20px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); }
+body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; }
+.app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.main { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
+.noscript { padding: 24px; }
+[hidden] { display: none !important; }
+
+/* ---------- shared controls ---------- */
+.btn-primary, .btn-outline, .btn-text {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 0; cursor: pointer; text-decoration: none; font-weight: 600; white-space: nowrap;
+}
+.btn-primary { height: 54px; padding: 0 26px; border-radius: 27px; background: var(--ink); color: #fff; font-size: 16px; }
+.btn-primary:hover { background: #000; }
+.btn-primary:disabled { background: #BDBDBD; color: #F4F4F4; cursor: not-allowed; }
+.btn-outline { height: 52px; padding: 0 24px; border-radius: 26px; background: var(--card); border: 1.5px solid var(--ink); font-size: 15px; }
+.btn-text { height: 40px; background: transparent; font-weight: 500; font-size: 14px; color: #444; }
+.btn-text:hover { color: var(--ink); text-decoration: underline; }
+.block { width: 100%; }
+.icon-btn {
+  width: 44px; height: 44px; flex: none; border-radius: 22px; border: 0; background: var(--card);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink);
+}
+.icon-btn.glass { background: rgba(255,255,255,.92); }
+:focus-visible { outline: 3px solid #2B6CB0; outline-offset: 2px; }
+.mono { font-family: var(--mono); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 13px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.pill.good { background: var(--good-bg); color: var(--good-ink); }
+.pill.warn { background: var(--warn-bg); color: var(--warn-ink); }
+.pill.bad { background: var(--bad-bg); color: var(--bad-ink); }
+.pill.ink { background: var(--ink); color: #fff; }
+.pill.glass { background: rgba(255,255,255,.92); color: var(--ink); }
+.pill.glass.warn { color: var(--warn-ink); }
+
+.seg { display: inline-flex; background: #E2E2E2; border-radius: 16px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; height: 30px; padding: 0 12px; border-radius: 13px; font-size: 13px; font-weight: 600; color: #444; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+/* ---------- top bar (desktop) ---------- */
+.topbar { display: none; height: 64px; flex: none; padding: 0 40px; align-items: center; justify-content: space-between; }
+.brand { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.privacy { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+
+/* ---------- start (mobile) ---------- */
+.m-start { flex: 1; display: flex; flex-direction: column; padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); }
+.m-start .brand { height: 44px; display: flex; align-items: center; }
+.m-start-actions { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.big-primary, .big-secondary { width: 100%; border-radius: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.big-primary { min-height: 260px; height: 38vh; max-height: 320px; background: var(--ink); color: #fff; border: 0; flex-direction: column; gap: 14px; padding: 20px; }
+.big-primary .t { font-size: 22px; font-weight: 600; }
+.big-primary .s { font-size: 14px; color: #CFCFCF; text-align: center; line-height: 1.4; max-width: 260px; }
+.big-secondary { height: 112px; background: var(--card); border: 1.5px solid var(--ink); gap: 14px; font-size: 18px; font-weight: 600; }
+.m-foot { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--muted); }
+
+/* ---------- start (desktop) ---------- */
+.d-start { flex: 1; display: flex; padding: 0 40px 40px; }
+.dropzone {
+  flex: 1; border: 2px dashed #A8A8A8; border-radius: 24px; background: #F7F7F6;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center;
+  transition: background .15s, border-color .15s;
+}
+.dropzone.over { background: #FFFFFF; border-color: var(--ink); }
+.dropzone h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+.dropzone .or { font-size: 14px; color: var(--muted); margin: 0; }
+.dropzone .hint { font-size: 13px; color: var(--muted); margin: 0; max-width: 520px; line-height: 1.5; }
+
+/* ---------- work screen (calibrate / pick / result) ---------- */
+.work { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: max(16px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); gap: 12px; }
+.m-head { height: 44px; flex: none; display: flex; align-items: center; gap: 12px; }
+.m-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.m-title .k { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.m-title .t { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-title.center { align-items: center; text-align: center; }
+.m-title.center .t { font-size: 14px; font-weight: 500; color: #444; }
+.head-spacer { width: 44px; flex: none; }
+.status-line > .st:first-child:not(.good):not(.warn) { color: var(--muted); font-weight: 600; }
+
+.stage-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.stage-box { width: 80%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.stage { position: relative; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 28px rgba(0,0,0,.14); background: #DADADA; touch-action: none; }
+.stage canvas.photo { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.marker { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; pointer-events: none; }
+.marker.fabric { border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--ink), 0 2px 8px rgba(0,0,0,.3); }
+.marker.white { border: 3px dashed #fff; box-shadow: 0 0 0 1.5px var(--ink); }
+.loupe { position: fixed; z-index: 30; width: 132px; height: 132px; border-radius: 50%; overflow: hidden; pointer-events: none;
+  border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--ink), 0 8px 24px rgba(0,0,0,.35); background: #ccc; }
+.loupe canvas { display: block; width: 100%; height: 100%; }
+
+.panel { flex: none; display: flex; flex-direction: column; gap: 10px; }
+
+.ref-card { background: var(--card); border-radius: 16px; padding: 10px 12px; display: flex; align-items: center; gap: 12px; }
+.ref-card .sw { width: 44px; height: 44px; flex: none; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+  background: repeating-linear-gradient(45deg, #EDEDED 0 6px, #E2E2E2 6px 12px); }
+.ref-card .tx { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ref-card .tx b { font-size: 14px; }
+.ref-card .tx span { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.ref-card.error .tx b { color: var(--bad-ink); }
+.ref-card.warn .tx b { color: var(--warn-ink); }
+
+.status-line { min-height: 22px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+.status-line .st { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; min-width: 0; }
+.status-line .st.good { color: var(--good-ink); }
+.status-line .st.warn { color: var(--warn-ink); }
+.status-line .raw { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.chip-sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.1); }
+.link-btn { border: 0; background: none; padding: 0; font-weight: 700; text-decoration: underline; cursor: pointer; color: inherit; font-size: inherit; }
+
+.colour-bar { display: flex; gap: 10px; height: 64px; }
+.colour-bar .cb-sw { flex: 7; border-radius: 16px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.1); display: flex; align-items: flex-end; gap: 8px; padding: 10px; flex-wrap: wrap; align-content: flex-end;
+  background: repeating-linear-gradient(45deg, #E9E9E9 0 8px, #DEDEDE 8px 16px); }
+.colour-bar .cb-hex { flex: 3; min-width: 0; border-radius: 16px; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.colour-bar .cb-hex b { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+.colour-bar .cb-hex small { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.colour-bar .cb-hex .empty { font-family: var(--font); font-size: 12px; color: var(--muted); text-align: center; padding: 0 6px; }
+
+/* ---------- desktop guide panel ---------- */
+.guide-card { background: var(--card); border-radius: 22px; padding: clamp(20px, 3.2vh, 34px) 32px; display: flex; flex-direction: column; gap: clamp(10px, 1.8vh, 18px); box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+.guide-card .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.guide-card h2 { margin: 0; font-size: clamp(24px, 3.6vh, 34px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.tips3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.tipcard { background: var(--card); border-radius: 18px; padding: clamp(14px, 2.2vh, 22px) 20px; display: flex; flex-direction: column; gap: clamp(8px, 1.4vh, 14px); }
+.tipcard .num { width: 34px; height: 34px; border-radius: 17px; border: 1.5px solid var(--ink); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; }
+.tipcard span:last-child { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.msg { font-size: 13px; line-height: 1.4; padding: 10px 14px; border-radius: 12px; }
+.msg.error { background: var(--bad-bg); color: var(--bad-ink); }
+.msg.warn { background: var(--warn-bg); color: var(--warn-ink); }
+
+/* ---------- results ---------- */
+.score-card { background: var(--card); border-radius: 22px; padding: 16px; display: flex; gap: 16px; align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+.ring { position: relative; width: var(--ring, 112px); height: var(--ring, 112px); flex: none; }
+.ring svg { display: block; width: 100%; height: 100%; }
+.ring .val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring .num { font-size: calc(var(--ring, 112px) * 0.34); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.ring .of { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.score-text { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.score-text .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.score-text h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+.score-text p { margin: 0; font-size: 13px; line-height: 1.4; color: #444; }
+
+.colouring { background: var(--card); border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.colouring .row { display: flex; align-items: center; }
+.colouring .sw { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.colouring .sw i { width: var(--dot, 40px); height: var(--dot, 40px); border-radius: 50%; display: block; }
+.colouring .sw.me i { box-shadow: 0 0 0 3px #fff, 0 0 0 4.5px var(--ink); }
+.colouring .sw span { font-size: 11px; color: #444; }
+.colouring .sw.me span { font-weight: 600; color: var(--ink); }
+.colouring .line { flex: 1; height: 1px; margin: 0 8px 16px; background: var(--line); }
+.colouring .sw + .sw:not(.me) { margin-left: 14px; }
+
+.factor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.factor { background: var(--card); border-radius: 16px; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.factor .top { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; }
+.factor .top span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.factor .top b { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.bar { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; }
+.factor .txt { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-score .factor .top { flex-direction: column; align-items: flex-start; gap: 0; }
+.m-score .factor .top span { width: 100%; }
+
+.tip { display: flex; flex-direction: column; gap: 10px; background: var(--tip-bg); border-radius: 16px; padding: 12px; }
+.tip .tl { display: flex; gap: 8px; align-items: center; padding: 0 2px; font-size: 13px; line-height: 1.35; color: var(--tip-ink); }
+.tip .tl svg { flex: none; }
+.tip .tl span { flex: 1; }
+.sugg { display: flex; gap: 8px; height: 52px; }
+.sugg .s-sw { flex: 7; border-radius: 12px; display: flex; align-items: center; padding: 0 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.sugg .s-hex { flex: 3; min-width: 0; border-radius: 12px; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.sugg .s-hex b { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+.sugg .s-hex small { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.tip .btn-primary { height: 36px; padding: 0 14px; font-size: 13px; border-radius: 18px; }
+
+/* mobile score screen */
+.m-score { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.band { height: clamp(104px, 18vh, 150px); flex: none; padding: max(16px, env(safe-area-inset-top)) 16px 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+.band .left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.hex-chip { background: rgba(255,255,255,.94); border-radius: 12px; padding: 7px 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.hex-chip b { font-family: var(--mono); font-size: 15px; font-weight: 600; }
+.hex-chip small { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.hex-chip .raw { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font); font-size: 10px; color: var(--muted); white-space: nowrap; }
+.hex-chip .raw.st-good { color: var(--good-ink); font-weight: 600; }
+.hex-chip .raw.st-warn { color: var(--warn-ink); font-weight: 600; }
+.hex-chip .raw .mono { font-weight: 400; color: var(--muted); }
+.m-score-body { flex: 1; min-height: 0; margin-top: -24px; padding: 0 16px max(20px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; position: relative; overflow-y: auto; }
+.grow { flex: 1; min-height: 0; }
+
+/* compact phones (e.g. iPhone SE, small Android) */
+@media (max-height: 760px) {
+  .band { height: 100px; }
+  .m-score-body { gap: 9px; }
+  .m-score .score-card { padding: 12px; --ring: 86px; }
+  .m-score .score-text h2 { font-size: 18px; }
+  .m-score .score-text { gap: 5px; }
+  .m-score .colouring { padding: 9px 14px; gap: 6px; --dot: 32px; }
+  .m-score .factor { padding: 9px 10px; gap: 6px; }
+  .m-score .factor .top b { font-size: 17px; }
+  .m-score .tip { padding: 10px; gap: 8px; }
+  .m-score .sugg { height: 44px; }
+  .m-score .btn-primary { height: 50px; }
+  .big-primary { min-height: 200px; }
+  .big-secondary { height: 96px; }
+}
+@media (max-height: 640px) {
+  .m-score .score-text p { display: none; }
+  .m-score .colouring { display: none; }
+}
+
+/* ---------- toast ---------- */
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+  background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 14px; font-size: 14px; max-width: min(92vw, 520px); text-align: center;
+  transition: opacity .2s, transform .2s; z-index: 40; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* =========================================================
+   Desktop: split view
+   ========================================================= */
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  .topbar { display: flex; }
+  .work { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; gap: 0; }
+  .m-head { display: none; }
+  .stage-wrap { padding: clamp(14px, 3vh, 30px) 20px clamp(20px, 3.6vh, 36px) 40px; min-height: 0; }
+  .stage-box { width: 100%; }
+  .panel { min-height: 0; padding: clamp(14px, 3vh, 30px) 40px clamp(20px, 3.6vh, 36px) 20px; gap: clamp(10px, 2.2vh, 24px); overflow-y: auto; }
+  .colour-bar { height: clamp(76px, 10.5vh, 104px); gap: 12px; }
+  .colour-bar .cb-sw { border-radius: 18px; padding: 14px; }
+  .colour-bar .cb-hex { border-radius: 18px; }
+  .colour-bar .cb-hex b { font-size: 18px; }
+  .colour-bar .cb-hex small { font-size: 12px; }
+  .panel .btn-primary.block { height: 56px; border-radius: 28px; flex: none; }
+
+  /* result panel */
+  .panel.result { gap: clamp(10px, 1.6vh, 14px); }
+  .colour-block { height: clamp(88px, 12vh, 116px); flex: none; border-radius: 20px; display: flex; align-items: flex-end; justify-content: space-between; padding: 14px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+  .colour-block .left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .colour-block .hexrow { background: rgba(255,255,255,.94); border-radius: 12px; padding: 8px 14px; display: flex; gap: 14px; align-items: center; }
+  .colour-block .hexrow b { font-family: var(--mono); font-size: 20px; font-weight: 600; }
+  .colour-block .hexrow small { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .colour-block .hexrow .sep { width: 1px; height: 18px; background: var(--line); }
+  .colour-block .hexrow .raw { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; flex: none; }
+  .panel.result .score-card { padding: clamp(10px, 1.6vh, 16px) 20px; box-shadow: 0 4px 18px rgba(0,0,0,.06); --ring: clamp(84px, 12.5vh, 120px); }
+  .panel.result .score-text h2 { font-size: 22px; }
+  .panel.result .colouring { padding: 18px 20px; gap: 12px; box-shadow: 0 4px 18px rgba(0,0,0,.06); justify-content: center; --dot: 44px; }
+  .explain { background: var(--card); border-radius: 20px; padding: clamp(12px, 1.8vh, 18px) 22px; display: flex; flex-direction: column; gap: 12px; flex: none; }
+  .explain p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+  .panel.result .tip { padding: 10px 12px; gap: 8px; }
+  .panel.result .sugg { height: clamp(40px, 5.4vh, 50px); }
+  .panel.result .btn-primary { height: clamp(46px, 6vh, 54px); }
+  .panel.result .factor-grid { flex: none; }
+  .panel.result .factor { padding: clamp(10px, 1.5vh, 14px) 14px; gap: clamp(6px, 1vh, 10px); }
+  .panel.result .factor .top b { font-size: 20px; }
+  .actions-right { display: flex; justify-content: flex-end; flex: none; }
+  .copy-btn { background: rgba(255,255,255,.94); }
+}
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (max-height: 960px) {
+  .topbar { height: 56px; }
+  .panel.result .colour-block { height: clamp(74px, 10vh, 96px); }
+  .explain p { font-size: 14px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .panel.result .factor { padding: 9px 14px; gap: 6px; }
+  .panel.result .factor .top b { font-size: 18px; }
+  .panel.result .colouring { padding: 12px 18px; }
+  .tips3 .tipcard span:last-child { font-size: 14px; }
+}
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (max-height: 760px) {
+  .topbar { height: 48px; }
+  .panel.result .colour-block { height: 64px; padding: 10px 12px; align-items: center; }
+  .colour-block .left { flex-direction: row; align-items: center; }
+  .colour-block .hexrow { padding: 6px 12px; }
+  .colour-block .hexrow b { font-size: 17px; }
+  .panel.result .colouring .label { display: none; }
+  .panel.result .colouring { --dot: 36px; }
+  .explain { padding: 10px 18px; gap: 8px; }
+  .explain p { -webkit-line-clamp: 3; }
+  .panel.result .factor-grid { gap: 8px; }
+  .panel.result .factor { padding: 7px 12px; gap: 5px; }
+  .panel.result .factor .top b { font-size: 16px; }
+}
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (max-height: 660px) {
+  .panel.result .factor .txt { display: none; }
+  .panel.result .score-card { --ring: 76px; }
+  .panel.result .score-text h2 { font-size: 18px; }
+}
+
+</style>
+</head>
+<body>
+<div id="app" class="app" data-layout="mobile" data-screen="start">
+  <header class="topbar">
+    <div class="brand">Colour Check</div>
+    <div class="privacy">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+      Processed on this device
+    </div>
+  </header>
+  <main id="main" class="main"></main>
+  <input type="file" id="pickCamera" accept="image/*" capture="environment" hidden>
+  <input type="file" id="pickFile" accept="image/*" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript">Colour Check needs JavaScript to read colours from your photo. Nothing is uploaded.</p></noscript>
+</div>
+<script>window.__SINGLE_FILE__ = true;</script>
+<script>
+/*
+ * Colour Check — personal colour profile.
+ *
+ * Everything the scoring engine knows about you lives in this file, so you can
+ * adjust it later without touching any logic. Colours are sRGB hex values.
+ *
+ * Derived from: your own description (Deep Autumn, Deep Winter overlap,
+ * neutral-warm undertone with a subtle olive influence, high contrast) and
+ * measurements taken from your window-lit selfie (forehead, nose, neck,
+ * shadowed cheek, hair and iris, then averaged and corrected for the phone's
+ * brightening). Skin #BC8874 = CIELAB L* 61.3, a* 17.3, b* 18.6, hue 47°,
+ * ITA 31° (medium / "intermediate", on the edge of "tan").
+ */
+(function (root) {
+  'use strict';
+
+  var PROFILE = {
+    label: 'Deep Autumn · Deep Winter overlap',
+
+    // Your natural colouring
+    skin: '#BC8874',   // medium to medium-tan, neutral-warm
+    hair: '#1F1F21',   // soft black / darkest brown, no visible warmth
+    eyes: '#261E1D',   // very dark brown, slightly warm
+
+    // Axes run from -1 to +1 (same convention as 12-season references)
+    undertone: 0.30,   // -1 cool … 0 neutral … +1 warm   (neutral-warm)
+    depth: 0.80,       // -1 light … +1 deep               (Deep season)
+    chroma: 0.20,      // -1 muted … +1 clear              (rich, not neon)
+    olive: 0.35,       //  0 none … 1 strong               (subtle olive influence)
+
+    // How much the neighbouring season is allowed to count (0 … 1)
+    secondaryWeight: 0.55,
+
+    /*
+     * Reference swatches used as an independent cross-check on the model.
+     * weight 1   = core Deep Autumn colour
+     * weight <1  = Deep Winter overlap or a light neutral
+     */
+    palette: [
+      // Dark neutrals
+      { name: 'Espresso',          hex: '#3B2416', weight: 1 },
+      { name: 'Dark chocolate',    hex: '#4A2818', weight: 1 },
+      { name: 'Bronzed black',     hex: '#241E18', weight: 1 },
+      { name: 'Warm charcoal',     hex: '#3A3836', weight: 1 },
+      { name: 'Marine navy',       hex: '#1F3B4A', weight: 1 },
+      { name: 'Warm taupe',        hex: '#6E5B4C', weight: 0.8 },
+      // Reds
+      { name: 'Oxblood',           hex: '#6A2028', weight: 1 },
+      { name: 'Burgundy',          hex: '#681820', weight: 1 },
+      { name: 'Mahogany',          hex: '#5C2A20', weight: 1 },
+      { name: 'Brick red',         hex: '#8E3A2A', weight: 1 },
+      { name: 'Chili red',         hex: '#A83224', weight: 1 },
+      { name: 'Terracotta',        hex: '#A85A3E', weight: 1 },
+      // Oranges, golds
+      { name: 'Rust',              hex: '#9A4A22', weight: 1 },
+      { name: 'Burnt orange',      hex: '#B5541E', weight: 1 },
+      { name: 'Copper',            hex: '#9C5A2C', weight: 1 },
+      { name: 'Bronze',            hex: '#7F5E2E', weight: 1 },
+      { name: 'Old gold',          hex: '#9E7B2C', weight: 1 },
+      { name: 'Mustard',           hex: '#B08A1E', weight: 0.9 },
+      // Greens
+      { name: 'Dark olive',        hex: '#4A5028', weight: 1 },
+      { name: 'Bronze olive',      hex: '#5E5A2A', weight: 1 },
+      { name: 'Moss',              hex: '#5B6634', weight: 1 },
+      { name: 'Forest green',      hex: '#284B32', weight: 1 },
+      // Blues
+      { name: 'Deep teal',         hex: '#285050', weight: 1 },
+      { name: 'Petrol',            hex: '#1D4E57', weight: 1 },
+      { name: 'Muted dark blue',   hex: '#2E3F5A', weight: 0.9 },
+      // Purples
+      { name: 'Aubergine',         hex: '#3E2338', weight: 1 },
+      { name: 'Plum',              hex: '#5A2A45', weight: 1 },
+      { name: 'Dark berry',        hex: '#5C1F3A', weight: 1 },
+      // Light neutrals (highlights, not main colours)
+      { name: 'Warm ivory',        hex: '#EFE6D2', weight: 0.7 },
+      { name: 'Candlelight cream', hex: '#F1E3C3', weight: 0.7 },
+      // Deep Winter overlap
+      { name: 'Black',             hex: '#121212', weight: 0.55 },
+      { name: 'Ink navy',          hex: '#1B2238', weight: 0.55 },
+      { name: 'Emerald',           hex: '#0B5F45', weight: 0.55 },
+      { name: 'Pine',              hex: '#1E4D3B', weight: 0.55 },
+      { name: 'Garnet',            hex: '#7E1530', weight: 0.55 },
+      { name: 'Cranberry',         hex: '#8A1C3A', weight: 0.55 },
+      { name: 'Blackberry',        hex: '#3A1D35', weight: 0.55 },
+      { name: 'Sapphire',          hex: '#1F3C8C', weight: 0.5 },
+      { name: 'Cool charcoal',     hex: '#36393F', weight: 0.55 },
+      { name: 'Crisp white',       hex: '#F7F7F5', weight: 0.3 }
+    ],
+
+    // Colours repeatedly listed as ones to avoid for Deep Autumn
+    avoid: [
+      { name: 'Icy pastel pink', hex: '#F4D8E0' },
+      { name: 'Pastel pink',     hex: '#F8C8DC' },
+      { name: 'Powder pink',     hex: '#F2C9CF' },
+      { name: 'Bubble-gum pink', hex: '#FF8FC8' },
+      { name: 'Icy blue',        hex: '#D6EFFA' },
+      { name: 'Icy turquoise',   hex: '#A6EDE6' },
+      { name: 'Baby blue',       hex: '#A9CFEA' },
+      { name: 'Dusty blue',      hex: '#93A9C2' },
+      { name: 'Lavender',        hex: '#E6E6FA' },
+      { name: 'Dusty lavender',  hex: '#B9A9C9' },
+      { name: 'Powdery lilac',   hex: '#CDB8DA' },
+      { name: 'Mint',            hex: '#BFE8D2' },
+      { name: 'Butter yellow',   hex: '#F0D878' },
+      { name: 'Peach',           hex: '#F7C6A3' },
+      { name: 'Silver grey',     hex: '#C0C0C0' },
+      { name: 'Cool grey',       hex: '#A0A8B0' },
+      { name: 'Icy grey',        hex: '#DCE0E5' },
+      { name: 'Neon pink',       hex: '#FF2E9A' },
+      { name: 'Neon green',      hex: '#4DFF3A' },
+      { name: 'Neon yellow',     hex: '#E6FF2E' },
+      { name: 'Electric coral',  hex: '#FF5A4E' },
+      { name: 'Cool fuchsia',    hex: '#E0379A' }
+    ]
+  };
+
+  root.COLOUR_PROFILE = PROFILE;
+  if (typeof module !== 'undefined' && module.exports) module.exports = PROFILE;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/*
+ * Colour Check — colour science and scoring engine.
+ * Plain JavaScript, no dependencies, no network. Everything runs in the browser.
+ *
+ * Standards used
+ *  - sRGB (IEC 61966-2-1) transfer curve and D65 matrices
+ *  - CIE 1976 L*a*b* / LCh(ab), D65 reference white
+ *  - CIEDE2000 colour difference (Sharma, Wu & Dalal 2005 implementation notes)
+ *  - Bradford chromatic adaptation for white-reference correction
+ *  - Individual Typology Angle (ITA) for skin depth classification
+ *
+ * Scoring model (see README for the reasoning)
+ *  Six factors, each 0–100, combined with a weighted power mean (p = -3) so one
+ *  bad factor drags the total down instead of being averaged away. A reference
+ *  palette (Deep Autumn + Deep Winter overlap, and an avoid list) is used as an
+ *  independent cross-check: a small bonus near good swatches, a penalty and a
+ *  hard cap near avoid swatches.
+ */
+(function (root) {
+  'use strict';
+
+  /* ------------------------------------------------------------------ */
+  /* Small maths helpers                                                 */
+  /* ------------------------------------------------------------------ */
+  var DEG = Math.PI / 180;
+  function clamp(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
+  function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+  function smooth(t) { t = clamp01(t); return t * t * (3 - 2 * t); }
+  function cosd(d) { return Math.cos(d * DEG); }
+  function sind(d) { return Math.sin(d * DEG); }
+  function wrap360(h) { h = h % 360; return h < 0 ? h + 360 : h; }
+  function hueDiff(a, b) { var d = Math.abs(wrap360(a) - wrap360(b)); return d > 180 ? 360 - d : d; }
+
+  // Linear interpolation through [x, y] points (x ascending)
+  function piecewise(x, pts) {
+    if (x <= pts[0][0]) return pts[0][1];
+    for (var i = 1; i < pts.length; i++) {
+      if (x <= pts[i][0]) {
+        var p = pts[i - 1], q = pts[i];
+        return p[1] + (q[1] - p[1]) * (x - p[0]) / (q[0] - p[0]);
+      }
+    }
+    return pts[pts.length - 1][1];
+  }
+
+  // 1 inside [lo, hi], fading to 0 over `soft` units outside
+  function band(x, lo, hi, soft) {
+    if (x >= lo && x <= hi) return 1;
+    var d = x < lo ? lo - x : x - hi;
+    return clamp01(1 - d / soft);
+  }
+
+  function mat3mul(A, B) {
+    var R = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++)
+      R[i][j] = A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j];
+    return R;
+  }
+  function mat3vec(A, v) {
+    return [
+      A[0][0] * v[0] + A[0][1] * v[1] + A[0][2] * v[2],
+      A[1][0] * v[0] + A[1][1] * v[1] + A[1][2] * v[2],
+      A[2][0] * v[0] + A[2][1] * v[1] + A[2][2] * v[2]
+    ];
+  }
+  function mat3inv(m) {
+    var a = m[0][0], b = m[0][1], c = m[0][2], d = m[1][0], e = m[1][1], f = m[1][2], g = m[2][0], h = m[2][1], i = m[2][2];
+    var A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g;
+    var det = a * A + b * B + c * C;
+    return [
+      [A / det, -(b * i - c * h) / det, (b * f - c * e) / det],
+      [B / det, (a * i - c * g) / det, -(a * f - c * d) / det],
+      [C / det, -(a * h - b * g) / det, (a * e - b * d) / det]
+    ];
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Colour conversions                                                  */
+  /* ------------------------------------------------------------------ */
+  var D65 = [0.95047, 1.0, 1.08883];
+  var RGB2XYZ = [
+    [0.4124564, 0.3575761, 0.1804375],
+    [0.2126729, 0.7151522, 0.0721750],
+    [0.0193339, 0.1191920, 0.9503041]
+  ];
+  var XYZ2RGB = mat3inv(RGB2XYZ);
+  var EPS = 216 / 24389, KAPPA = 24389 / 27;
+
+  function srgbToLinear(c) { return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function linearToSrgb(c) { return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055; }
+
+  var LIN8 = new Float64Array(256);
+  for (var k = 0; k < 256; k++) LIN8[k] = srgbToLinear(k / 255);
+
+  function hexToRgb8(hex) {
+    var s = String(hex).replace('#', '').trim();
+    if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+    var n = parseInt(s, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgb8ToHex(rgb) {
+    return '#' + rgb.map(function (v) {
+      var s = clamp(Math.round(v), 0, 255).toString(16).toUpperCase();
+      return s.length < 2 ? '0' + s : s;
+    }).join('');
+  }
+  function rgb8ToLinear(rgb) { return [LIN8[rgb[0]], LIN8[rgb[1]], LIN8[rgb[2]]]; }
+  function linearToRgb8(lin) {
+    return lin.map(function (v) { return clamp(Math.round(linearToSrgb(clamp(v, 0, 1)) * 255), 0, 255); });
+  }
+  function linearToXyz(lin) { return mat3vec(RGB2XYZ, lin); }
+  function xyzToLinear(xyz) { return mat3vec(XYZ2RGB, xyz); }
+
+  function xyzToLab(xyz) {
+    function f(t) { return t > EPS ? Math.cbrt(t) : (KAPPA * t + 16) / 116; }
+    var fx = f(xyz[0] / D65[0]), fy = f(xyz[1] / D65[1]), fz = f(xyz[2] / D65[2]);
+    return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+  }
+  function labToXyz(lab) {
+    var fy = (lab[0] + 16) / 116, fx = fy + lab[1] / 500, fz = fy - lab[2] / 200;
+    function finv(t) { var t3 = t * t * t; return t3 > EPS ? t3 : (116 * t - 16) / KAPPA; }
+    var yr = lab[0] > KAPPA * EPS ? fy * fy * fy : lab[0] / KAPPA;
+    return [D65[0] * finv(fx), D65[1] * yr, D65[2] * finv(fz)];
+  }
+  function labToLch(lab) {
+    var C = Math.sqrt(lab[1] * lab[1] + lab[2] * lab[2]);
+    var h = C < 1e-9 ? 0 : wrap360(Math.atan2(lab[2], lab[1]) / DEG);
+    return { L: lab[0], C: C, h: h };
+  }
+  function lchToLab(L, C, h) { return [L, C * cosd(h), C * sind(h)]; }
+
+  function hexToLab(hex) { return xyzToLab(linearToXyz(rgb8ToLinear(hexToRgb8(hex)))); }
+  function labToLinear(lab) { return xyzToLinear(labToXyz(lab)); }
+  function labToRgb8(lab) { return linearToRgb8(labToLinear(lab)); }
+  function labToHex(lab) { return rgb8ToHex(labToRgb8(lab)); }
+  function labInGamut(lab, tol) {
+    tol = tol === undefined ? 1e-4 : tol;
+    var lin = labToLinear(lab);
+    return lin[0] >= -tol && lin[0] <= 1 + tol && lin[1] >= -tol && lin[1] <= 1 + tol && lin[2] >= -tol && lin[2] <= 1 + tol;
+  }
+
+  /* CIEDE2000 — follows Sharma, Wu & Dalal (2005) exactly. */
+  function deltaE00(lab1, lab2) {
+    var L1 = lab1[0], a1 = lab1[1], b1 = lab1[2], L2 = lab2[0], a2 = lab2[1], b2 = lab2[2];
+    var C1 = Math.sqrt(a1 * a1 + b1 * b1), C2 = Math.sqrt(a2 * a2 + b2 * b2);
+    var Cb = (C1 + C2) / 2, Cb7 = Math.pow(Cb, 7);
+    var G = 0.5 * (1 - Math.sqrt(Cb7 / (Cb7 + 6103515625)));
+    var a1p = (1 + G) * a1, a2p = (1 + G) * a2;
+    var C1p = Math.sqrt(a1p * a1p + b1 * b1), C2p = Math.sqrt(a2p * a2p + b2 * b2);
+    var h1p = (a1p === 0 && b1 === 0) ? 0 : wrap360(Math.atan2(b1, a1p) / DEG);
+    var h2p = (a2p === 0 && b2 === 0) ? 0 : wrap360(Math.atan2(b2, a2p) / DEG);
+    var dLp = L2 - L1, dCp = C2p - C1p, dhp;
+    if (C1p * C2p === 0) dhp = 0;
+    else { dhp = h2p - h1p; if (dhp > 180) dhp -= 360; else if (dhp < -180) dhp += 360; }
+    var dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp * DEG / 2);
+    var Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2, hbp;
+    if (C1p * C2p === 0) hbp = h1p + h2p;
+    else if (Math.abs(h1p - h2p) <= 180) hbp = (h1p + h2p) / 2;
+    else if (h1p + h2p < 360) hbp = (h1p + h2p + 360) / 2;
+    else hbp = (h1p + h2p - 360) / 2;
+    var T = 1 - 0.17 * cosd(hbp - 30) + 0.24 * cosd(2 * hbp) + 0.32 * cosd(3 * hbp + 6) - 0.20 * cosd(4 * hbp - 63);
+    var dTheta = 30 * Math.exp(-Math.pow((hbp - 275) / 25, 2));
+    var Cbp7 = Math.pow(Cbp, 7);
+    var RC = 2 * Math.sqrt(Cbp7 / (Cbp7 + 6103515625));
+    var Lm = (Lbp - 50) * (Lbp - 50);
+    var SL = 1 + 0.015 * Lm / Math.sqrt(20 + Lm), SC = 1 + 0.045 * Cbp, SH = 1 + 0.015 * Cbp * T;
+    var RT = -Math.sin(2 * dTheta * DEG) * RC;
+    var tL = dLp / SL, tC = dCp / SC, tH = dHp / SH;
+    return Math.sqrt(tL * tL + tC * tC + tH * tH + RT * tC * tH);
+  }
+
+  /* Individual Typology Angle (skin depth), degrees */
+  function ita(lab) { return Math.atan2(lab[0] - 50, lab[2]) / DEG; }
+
+  /* ------------------------------------------------------------------ */
+  /* sRGB gamut: maximum chroma for a given lightness and hue            */
+  /* ------------------------------------------------------------------ */
+  var gamutCache = new Map();
+  function maxChroma(L, h) {
+    if (L <= 0.05 || L >= 99.95) return 0;
+    var key = Math.round(L * 20) + '|' + Math.round(wrap360(h) * 10);
+    var hit = gamutCache.get(key);
+    if (hit !== undefined) return hit;
+    var lo = 0, hi = 200;
+    for (var i = 0; i < 26; i++) {
+      var mid = (lo + hi) / 2;
+      if (labInGamut(lchToLab(L, mid, h), 1e-6)) lo = mid; else hi = mid;
+    }
+    if (gamutCache.size > 200000) gamutCache.clear();
+    gamutCache.set(key, lo);
+    return lo;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Sampling a patch of pixels (eyedropper)                             */
+  /* ------------------------------------------------------------------ */
+  /*
+   * data: RGBA Uint8ClampedArray, w/h: image size, (cx, cy): centre in pixels,
+   * r: radius in pixels, kind: 'fabric' | 'white'.
+   * Fabric: specular highlights are dropped, then the darkest 20% (weave
+   * shadows) and brightest 20% are trimmed and the rest averaged in linear
+   * light. White: clipped pixels are dropped when possible and the brighter
+   * body of the reference is averaged.
+   */
+  function samplePatch(data, w, h, cx, cy, r, kind) {
+    r = Math.max(1.5, r);
+    var x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(w - 1, Math.ceil(cx + r));
+    var y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(h - 1, Math.ceil(cy + r));
+    var r2 = r * r, px = [];
+    for (var y = y0; y <= y1; y++) {
+      for (var x = x0; x <= x1; x++) {
+        var dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+        if (dx * dx + dy * dy > r2) continue;
+        var i = (y * w + x) * 4;
+        var R = data[i], G = data[i + 1], B = data[i + 2];
+        var lr = LIN8[R], lg = LIN8[G], lb = LIN8[B];
+        px.push({ r: lr, g: lg, b: lb, Y: 0.2126729 * lr + 0.7151522 * lg + 0.0721750 * lb, max: Math.max(R, G, B) });
+      }
+    }
+    var n = px.length;
+    if (!n) return null;
+    var clipLimit = kind === 'white' ? 252 : 250;
+    var unclipped = px.filter(function (p) { return p.max < clipLimit; });
+    var clippedFrac = 1 - unclipped.length / n;
+    var pool = unclipped.length >= Math.max(4, n * (kind === 'white' ? 0.3 : 0.25)) ? unclipped : px;
+    pool.sort(function (a, b) { return a.Y - b.Y; });
+    var loQ = kind === 'white' ? 0.4 : 0.2, hiQ = kind === 'white' ? 0.97 : 0.8;
+    var s = Math.floor(pool.length * loQ), e = Math.max(s + 1, Math.ceil(pool.length * hiQ));
+    var kept = pool.slice(s, e);
+    var sr = 0, sg = 0, sb = 0;
+    kept.forEach(function (p) { sr += p.r; sg += p.g; sb += p.b; });
+    var lin = [sr / kept.length, sg / kept.length, sb / kept.length];
+
+    // Uniformity: is this one colour or a print / mix of colours?
+    var meanLab = xyzToLab(linearToXyz(lin));
+    var abD = [], Ls = [];
+    kept.forEach(function (p) {
+      var lab = xyzToLab(linearToXyz([p.r, p.g, p.b]));
+      abD.push(Math.hypot(lab[1] - meanLab[1], lab[2] - meanLab[2]));
+      Ls.push(lab[0]);
+    });
+    abD.sort(function (a, b) { return a - b; });
+    Ls.sort(function (a, b) { return a - b; });
+    var q = function (arr, t) { return arr[Math.min(arr.length - 1, Math.floor(arr.length * t))]; };
+    var abSpread = q(abD, 0.8);
+    var lSpread = q(Ls, 0.9) - q(Ls, 0.1);
+    var mixed = kind === 'fabric' && (abSpread > Math.max(9, 0.35 * Math.hypot(meanLab[1], meanLab[2])) || lSpread > 26);
+
+    return {
+      lin: lin, n: n, kept: kept.length, clippedFrac: clippedFrac,
+      abSpread: abSpread, lSpread: lSpread, mixed: mixed,
+      rawLab: meanLab, rawHex: rgb8ToHex(linearToRgb8(lin))
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* White-reference calibration                                         */
+  /* ------------------------------------------------------------------ */
+  var BRADFORD = [[0.8951, 0.2664, -0.1614], [-0.7502, 1.7135, 0.0367], [0.0389, -0.0685, 1.0296]];
+  var BRADFORD_INV = mat3inv(BRADFORD);
+  var REF_Y = { white: 0.86, grey: 0.18 }; // white paper ≈ L* 94, 18 % grey card ≈ L* 50
+
+  function adaptationMatrix(srcXYZ, dstXYZ) {
+    var s = mat3vec(BRADFORD, srcXYZ), d = mat3vec(BRADFORD, dstXYZ);
+    var D = [[d[0] / s[0], 0, 0], [0, d[1] / s[1], 0], [0, 0, d[2] / s[2]]];
+    return mat3mul(BRADFORD_INV, mat3mul(D, BRADFORD));
+  }
+
+  function describeCast(lab) {
+    var C = Math.hypot(lab[1], lab[2]);
+    if (C < 3) return { label: 'Neutral light', tone: 'neutral', strength: 'none', C: C };
+    var h = wrap360(Math.atan2(lab[2], lab[1]) / DEG);
+    var tone = (h >= 40 && h < 125) ? 'warm' : (h >= 125 && h < 200) ? 'green' : (h >= 200 && h < 300) ? 'cool' : 'pink';
+    var strength = C < 7 ? 'slight' : C < 15 ? 'clear' : 'strong';
+    var name = { warm: 'Warm light', cool: 'Cool light', green: 'Greenish light', pink: 'Pinkish light' }[tone];
+    var prefix = strength === 'slight' ? 'Slightly ' + name.toLowerCase() : strength === 'strong' ? 'Strong ' + name.toLowerCase() : name;
+    return { label: prefix + ' detected', tone: tone, strength: strength, C: C, h: h };
+  }
+
+  /* Brightness of the brightest areas in the photo (99th percentile of luminance) */
+  function brightReference(data, w, h) {
+    var step = Math.max(1, Math.floor(Math.sqrt(w * h / 60000))), Ys = [];
+    for (var y = 0; y < h; y += step) for (var x = 0; x < w; x += step) {
+      var i = (y * w + x) * 4;
+      if (Math.max(data[i], data[i + 1], data[i + 2]) >= 250) continue; // ignore blown highlights and lamps
+      Ys.push(0.2126729 * LIN8[data[i]] + 0.7151522 * LIN8[data[i + 1]] + 0.0721750 * LIN8[data[i + 2]]);
+    }
+    Ys.sort(function (a, b) { return a - b; });
+    return Ys[Math.min(Ys.length - 1, Math.floor(Ys.length * 0.99))] || 1;
+  }
+
+  function analyseWhite(sample, refType, brightY) {
+    refType = refType === 'grey' ? 'grey' : 'white';
+    var xyz = linearToXyz(sample.lin), lab = xyzToLab(xyz);
+    var C = Math.hypot(lab[1], lab[2]);
+    var res = { ok: true, level: 'good', refType: refType, xyz: xyz, lab: lab, hex: sample.rawHex, clippedFrac: sample.clippedFrac, message: '' };
+    if (refType === 'white' && lab[0] < 35) {
+      res.ok = false; res.level = 'error';
+      res.message = 'Too dark to be a white reference. Tap a brighter white area.';
+    } else if (refType === 'grey' && (lab[0] < 15 || lab[0] > 85)) {
+      res.ok = false; res.level = 'error';
+      res.message = lab[0] > 85 ? 'This looks white, not grey. Switch to White, or tap the grey card.' : 'Too dark for a grey card. Tap the card itself.';
+    } else if (C > 32) {
+      res.ok = false; res.level = 'error';
+      res.message = "This doesn't look white or grey. Tap a plain white area.";
+    } else if (refType === 'white' && brightY && xyz[1] < 0.8 * brightY && C > 14) {
+      res.ok = false; res.level = 'error';
+      res.message = 'This looks coloured, and the photo has brighter, whiter areas. Tap the white tag itself.';
+    } else if (refType === 'white' && brightY && xyz[1] < 0.45 * brightY) {
+      res.level = 'warn';
+      res.message = 'Is this really white? Parts of the photo are much brighter.';
+    } else if (sample.clippedFrac > 0.6) {
+      res.level = 'warn';
+      res.message = 'This white is overexposed, so the correction is only partial.';
+    } else if (C > 20) {
+      res.level = 'warn';
+      res.message = 'Very strong colour cast. Make sure this really is white.';
+    }
+    res.cast = describeCast(lab);
+    return res;
+  }
+
+  function makeCalibration(white) {
+    var y = REF_Y[white.refType] || REF_Y.white;
+    var dst = [D65[0] * y, D65[1] * y, D65[2] * y];
+    return {
+      matrix: adaptationMatrix(white.xyz, dst),
+      refType: white.refType,
+      level: white.level,
+      cast: white.cast,
+      refHex: white.hex,
+      quality: white.level === 'good' ? 1 : 0.6
+    };
+  }
+
+  /* Raw sample (linear sRGB) → corrected CIELAB */
+  function correctSample(lin, calib) {
+    var xyz = linearToXyz(lin);
+    if (calib) xyz = mat3vec(calib.matrix, xyz);
+    xyz = [Math.max(0, xyz[0]), Math.max(0, xyz[1]), Math.max(0, xyz[2])];
+    return xyzToLab(xyz);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* The person model                                                    */
+  /* ------------------------------------------------------------------ */
+  function buildPerson(p) {
+    var skin = hexToLab(p.skin), hair = hexToLab(p.hair), eyes = hexToLab(p.eyes);
+    var skinL = labToLch(skin), eyesL = labToLch(eyes);
+    var natural = skin[0] - Math.min(hair[0], eyes[0]);
+    var level = natural >= 35 ? 'high' : natural >= 20 ? 'medium' : 'low';
+    var depth = p.depth === undefined ? 0.8 : p.depth;
+    var shift = (0.8 - depth) * 25; // lighter seasons move the ideal band up
+    var depthCurve = [[0, 62], [8, 68], [14, 88], [18, 100], [46, 100], [56, 84], [64, 66], [72, 48], [80, 36], [88, 30], [100, 26]]
+      .map(function (pt, i, arr) { return [i === 0 || i === arr.length - 1 ? pt[0] : clamp(pt[0] + shift, 1, 99), pt[1]]; });
+    var chroma = p.chroma === undefined ? 0.2 : p.chroma;
+    return {
+      skin: skin, hair: hair, eyes: eyes,
+      skinHex: p.skin, hairHex: p.hair, eyesHex: p.eyes,
+      skinLch: skinL, eyesLch: eyesL,
+      ita: ita(skin),
+      naturalContrast: natural, contrastLevel: level,
+      contrastTarget: clamp(natural * 0.6, 12, 30),
+      undertone: p.undertone === undefined ? 0.3 : p.undertone,
+      olive: p.olive || 0,
+      depth: depth, depthCurve: depthCurve,
+      chromaLo: 0.34 + 0.2 * chroma, chromaHi: 0.74 + 0.2 * chroma,
+      secondaryWeight: p.secondaryWeight === undefined ? 0.5 : p.secondaryWeight,
+      palette: (p.palette || []).map(function (s) { return { name: s.name, hex: s.hex, weight: s.weight, lab: hexToLab(s.hex) }; }),
+      avoid: (p.avoid || []).map(function (s) { return { name: s.name, hex: s.hex, lab: hexToLab(s.hex) }; }),
+      label: p.label || ''
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Factors                                                             */
+  /* ------------------------------------------------------------------ */
+  /*
+   * Colour temperature of a hue, -1 (cool, blue-based) … +1 (warm, yellow-
+   * based), following colour-analysis convention: golden/orange is the warm
+   * pole, blue the cool pole, true red and teal sit near neutral, and within
+   * each family the yellow-leaning version is warmer than the blue-leaning one.
+   */
+  var WARMTH = [[0, -0.45], [15, -0.2], [25, 0.0], [40, 0.35], [55, 0.85], [75, 1.0], [95, 0.95], [110, 0.8], [140, 0.4],
+    [170, 0.1], [195, -0.15], [215, -0.45], [250, -0.8], [285, -1.0], [300, -0.95], [330, -0.7], [345, -0.62], [360, -0.45]];
+  function warmthIndex(h) { return piecewise(wrap360(h), WARMTH); }
+
+  var WEIGHTS = { depth: 0.30, undertone: 0.22, chroma: 0.13, separation: 0.14, contrast: 0.12, harmony: 0.09 };
+  var POWER = -3; // weighted power mean: low factors pull the total down hard
+
+  // How much a colour reads as a light neutral (white, ivory, cream) rather than a pastel, 0…1.
+  // Warm off-whites (cream, ivory) are allowed more chroma than cool or pink tints.
+  function lightNeutrality(lch) {
+    var warmish = band(lch.h, 55, 105, 45);
+    var n = clamp01((14 - lch.C) / 12) * (1 - warmish) + clamp01((34 - lch.C) / 16) * warmish;
+    return n * band(lch.L, 87, 100, 11);
+  }
+
+  function factorDepth(lch, person) {
+    var curve = piecewise(lch.L, person.depthCurve);
+    // Light neutrals (ivory, cream, white) are the season's highlight colours, not pastels
+    var floor = 58 * lightNeutrality(lch);
+    return { score: Math.max(curve, floor), lightNeutral: floor > curve };
+  }
+
+  function factorUndertone(lch, person) {
+    var W = warmthIndex(lch.h), s = lch.C / (lch.C + 18), E = W * s;
+    var dev = E - person.undertone, adev = Math.abs(dev);
+    var m = 0.45 + 0.55 * clamp01((lch.L - 15) / 45); // temperature reads less in very dark colours
+    var T;
+    if (adev <= 0.25) T = 100;
+    else if (adev <= 0.45) T = 100 - 50 * (adev - 0.25);
+    else T = 90 - 130 * (adev - 0.45) * m;
+    // Olive skin: yellow-greens at skin-level lightness bring out sallowness
+    var olive = person.olive * band(lch.h, 95, 135, 15) * band(lch.L, 48, 80, 8) * clamp01((lch.C - 10) / 15);
+    T -= 22 * olive;
+    return { score: clamp(T, 15, 100), W: W, E: E, dev: dev, olive: olive };
+  }
+
+  var cuspCache = new Map();
+  function cuspChroma(h) {
+    h = wrap360(h);
+    var h0 = Math.floor(h), t = h - h0;
+    return cuspAt(h0) * (1 - t) + cuspAt((h0 + 1) % 360) * t;
+  }
+  function cuspAt(hInt) {
+    var key = hInt;
+    var hit = cuspCache.get(key);
+    if (hit !== undefined) return hit;
+    var best = 0, bestL = 50, L;
+    for (L = 2; L <= 98; L += 2) { var c = maxChroma(L, key); if (c > best) { best = c; bestL = L; } }
+    for (L = bestL - 2; L <= bestL + 2; L += 0.5) { var c2 = maxChroma(L, key); if (c2 > best) best = c2; }
+    cuspCache.set(key, best);
+    return best;
+  }
+
+  function smoothMaxChroma(L, h) {
+    return (2 * maxChroma(L, h) + maxChroma(Math.max(0.1, L - 1.5), h) + maxChroma(Math.min(99.9, L + 1.5), h) +
+      maxChroma(L, h - 3) + maxChroma(L, h + 3)) / 6;
+  }
+
+  function factorChroma(lch, person) {
+    var Cmax = smoothMaxChroma(lch.L, lch.h);
+    var relL = Cmax > 0.5 ? clamp(lch.C / Cmax, 0, 1.2) : 0;
+    var relCusp = lch.C / Math.max(1, cuspChroma(lch.h));
+    // Near-white yellows sit on a sharp corner of the sRGB gamut, so lean on the
+    // hue's overall maximum there to keep the score smooth.
+    var wL = 0.5 * (1 - 0.8 * clamp01((lch.L - 80) / 12));
+    var rel = wL * relL + (1 - wL) * clamp(relCusp, 0, 1.2);
+    var lo = person.chromaLo, hi = person.chromaHi, chromatic, kind = 'rich';
+    if (rel < lo) {
+      var under = (lo - rel) / lo, lf = clamp01((lch.L - 28) / 40);
+      chromatic = 100 - 100 * under * (0.2 + 0.8 * lf);
+      kind = lch.L < 35 ? 'deep-neutral' : 'muted';
+    } else if (rel > hi) {
+      var over = clamp01((rel - hi) / (1 - hi)), bf = clamp01((lch.L - 35) / 30);
+      chromatic = 100 - 80 * over * (0.3 + 0.7 * bf);
+      kind = 'vivid';
+    } else chromatic = 100;
+    var neon = clamp01((lch.C - 70) / 16) * clamp01((lch.L - 50) / 10) * clamp01((relL - 0.8) / 0.1);
+    if (neon > 0) { chromatic = chromatic * (1 - neon) + Math.min(chromatic, 35) * neon; if (neon > 0.5) kind = 'neon'; }
+    // Near-neutrals are judged as neutrals, not as "muted colours"
+    var neutral = piecewise(lch.L, [[0, 92], [30, 95], [40, 76], [48, 52], [72, 45], [86, 66], [100, 82]]);
+    var t = clamp01((lch.C - 4) / 6); // 0 = neutral, 1 = chromatic
+    t = Math.min(t, 1 - lightNeutrality(lch)); // cream and ivory are light neutrals even with some chroma
+    if (t < 1 && kind !== 'neon' && kind !== 'vivid') kind = lch.L < 35 ? 'deep-neutral' : lch.L > 85 ? 'light-neutral' : 'mid-neutral';
+    if (t > 0.5 && (kind === 'deep-neutral' || kind === 'light-neutral' || kind === 'mid-neutral')) kind = rel < lo ? (lch.L < 35 ? 'deep-neutral' : 'muted') : 'rich';
+    return { score: clamp(neutral * (1 - t) + chromatic * t, 5, 100), rel: rel, kind: kind, Cmax: Cmax };
+  }
+
+  function factorSeparation(lab, person) {
+    var d = deltaE00(lab, person.skin);
+    // Lighter "nude" shades in the skin's own hue family wash out more than
+    // slightly deeper ones (which read as tonal), so they count as closer.
+    var lighter = clamp01((lab[0] - person.skin[0]) / 6);
+    var nude = 1 - lighter * 0.15 * (1 - clamp01(hueDiff(labToLch(lab).h, person.skinLch.h) / 60));
+    var dEff = d * nude;
+    return { score: 15 + 85 * smooth((dEff - 6) / 20), dE: d };
+  }
+
+  function factorContrast(lch, person) {
+    // Value contrast against the skin, plus colour contrast when the garment is
+    // clearly more saturated than the skin (a rich mustard still lifts a face
+    // of the same lightness; a beige of the same lightness does not).
+    var dL = Math.abs(lch.L - person.skin[0]), t = person.contrastTarget;
+    var dC = clamp(lch.C - person.skinLch.C, 0, 30);
+    var eff = Math.sqrt(dL * dL + 0.25 * dC * dC);
+    return { score: eff >= t ? 100 : 25 + 75 * Math.pow(eff / t, 1.3), dL: dL, eff: eff };
+  }
+
+  function factorHarmony(lab, lch, person) {
+    var dEyes = deltaE00(lab, person.eyes), dHair = deltaE00(lab, person.hair);
+    var dEcho = Math.min(dEyes, dHair);
+    var echo = clamp01((24 - dEcho) / 16);
+    var comp = wrap360(person.eyesLch.h + 180);
+    var pop = 0.75 * Math.pow(Math.max(0, cosd(hueDiff(lch.h, comp))), 3) * clamp01(lch.C / 25) * clamp01((70 - lch.L) / 25);
+    var analog = 0.85 * Math.pow(Math.max(0, cosd(hueDiff(lch.h, person.skinLch.h))), 4) *
+      clamp01((person.skin[0] - lch.L - 10) / 20) * clamp01(lch.C / 20);
+    var best = Math.max(echo, pop, analog);
+    var kind = best < 0.15 ? 'neutral' : best === echo ? (dEyes <= dHair ? 'echo-eyes' : 'echo-hair') : best === pop ? 'pop' : 'analog';
+    return { score: 60 + 40 * best, kind: kind, echo: echo, pop: pop, analog: analog };
+  }
+
+  function paletteCheck(lab, person) {
+    var bonus = 0, near = null, nearD = Infinity, avoidSw = null, avoidD = Infinity;
+    person.palette.forEach(function (sw) {
+      var d = deltaE00(lab, sw.lab), b = sw.weight * 5 * clamp01((10 - d) / 7);
+      if (b > bonus) bonus = b;
+      if (d < nearD) { nearD = d; near = sw; }
+    });
+    person.avoid.forEach(function (sw) {
+      var d = deltaE00(lab, sw.lab);
+      if (d < avoidD) { avoidD = d; avoidSw = sw; }
+    });
+    return {
+      bonus: bonus, near: near, nearD: nearD,
+      avoid: avoidSw, avoidD: avoidD, avoidPenalty: 16 * clamp01((10 - avoidD) / 6)
+    };
+  }
+
+  /* Core score of a colour, full detail */
+  function scoreLab(lab, person) {
+    var lch = labToLch(lab);
+    var f = {
+      depth: factorDepth(lch, person),
+      undertone: factorUndertone(lch, person),
+      chroma: factorChroma(lch, person),
+      separation: factorSeparation(lab, person),
+      contrast: factorContrast(lch, person),
+      harmony: factorHarmony(lab, lch, person)
+    };
+    var acc = 0;
+    Object.keys(WEIGHTS).forEach(function (key) {
+      acc += WEIGHTS[key] * Math.pow(Math.max(5, f[key].score), POWER);
+    });
+    var model = Math.pow(acc, 1 / POWER);
+    var pal = paletteCheck(lab, person);
+    var total = model + pal.bonus - pal.avoidPenalty;
+    // Safety caps (continuous, so a tiny change in the reading can't flip the verdict)
+    var caps = [];
+    var avoidCap = 62 + 40 * clamp01((pal.avoidD - 4) / 4);       // ΔE00 ≤ 4 from an avoid colour → at most 62
+    var minCore = Math.min(f.depth.score, f.undertone.score, f.separation.score);
+    var coreCap = 64 + 40 * clamp01((minCore - 35) / 10);          // a core factor below 35 → at most 64
+    if (avoidCap < total) { total = avoidCap; caps.push('avoid'); }
+    if (coreCap < total) { total = coreCap; caps.push('core'); }
+    if (total > 88) total = 88 + (total - 88) * 0.6;
+    return { lab: lab, lch: lch, factors: f, model: model, palette: pal, caps: caps, score: clamp(total, 0, 100) };
+  }
+
+  function quickScore(lab, person) { return scoreLab(lab, person).score; }
+
+  /* Score range under measurement uncertainty */
+  var UNCERTAINTY = {
+    calibrated: { L: 2.5, a: 1.5, b: 2.5 },
+    partial: { L: 5, a: 2.5, b: 4.5 },
+    uncalibrated: { L: 8, a: 3, b: 7 }
+  };
+  function scoreRange(lab, person, level) {
+    var u = UNCERTAINTY[level] || UNCERTAINTY.uncalibrated;
+    var deltas = [[u.L, 0, 0], [-u.L, 0, 0], [0, u.a, 0], [0, -u.a, 0], [0, 0, u.b], [0, 0, -u.b],
+      [u.L * 0.7, 0, u.b * 0.7], [-u.L * 0.7, 0, u.b * 0.7], [u.L * 0.7, 0, -u.b * 0.7], [-u.L * 0.7, 0, -u.b * 0.7]];
+    var base = quickScore(lab, person), lo = base, hi = base;
+    deltas.forEach(function (d) {
+      var s = quickScore([clamp(lab[0] + d[0], 0, 100), lab[1] + d[1], lab[2] + d[2]], person);
+      if (s < lo) lo = s; if (s > hi) hi = s;
+    });
+    return { lo: lo, hi: hi, base: base };
+  }
+
+  /* Closest colour in the same family that would suit you clearly better */
+  function suggest(lab, person, baseScore) {
+    if (baseScore >= 88) return null;
+    var lch = labToLch(lab);
+    var need = Math.max(baseScore + 6, 78);
+    var hues = lch.C < 6 ? [30, 50, 70, 95, 200, 230] : [-24, -16, -8, 0, 8, 16, 24].map(function (d) { return wrap360(lch.h + d); });
+    function search(Ls, Cstep, hueList, Cmin, Cmax) {
+      var best = null;
+      hueList.forEach(function (h) {
+        Ls.forEach(function (L) {
+          var top = Math.min(Cmax, maxChroma(L, h) * 0.98);
+          for (var C = Cmin; C <= top + 1e-9; C += Cstep) {
+            var cand = lchToLab(L, C, h);
+            var s = quickScore(cand, person);
+            if (s < need) continue;
+            var obj = s - 0.55 * deltaE00(lab, cand);
+            if (!best || obj > best.obj) best = { lab: cand, score: s, obj: obj, L: L, C: C, h: h };
+          }
+        });
+      });
+      return best;
+    }
+    var Ls = [];
+    for (var L = Math.max(6, lch.L - 42); L <= Math.min(95, lch.L + 30); L += 3) Ls.push(L);
+    var Cmax = lch.C < 6 ? 22 : 95;
+    var Cmin = lch.C < 6 ? 0 : Math.max(8, 0.35 * lch.C);
+    var best = search(Ls, 4, hues, Cmin, Cmax);
+    if (!best) return null;
+    // refine around the coarse winner
+    var fineL = [], fineH = [];
+    for (var dl = -3; dl <= 3; dl += 1) fineL.push(clamp(best.L + dl, 4, 96));
+    for (var dh = -6; dh <= 6; dh += 3) fineH.push(wrap360(best.h + dh));
+    var fine = search(fineL, 1.5, fineH, Math.max(Cmin, best.C - 8), best.C + 8) || best;
+    var rgb = labToRgb8(fine.lab);
+    var finalLab = hexToLab(rgb8ToHex(rgb)); // snap to a real displayable colour
+    var finalScore = quickScore(finalLab, person);
+    if (finalScore < need - 1) return null;
+    return { lab: finalLab, hex: rgb8ToHex(rgb), rgb: rgb, score: finalScore };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Words                                                               */
+  /* ------------------------------------------------------------------ */
+  function colourName(lab) {
+    var c = labToLch(lab), L = c.L, C = c.C, h = c.h;
+    var rel = C / Math.max(1, maxChroma(L, h));
+    var warm = warmthIndex(h) * (C / (C + 18));
+    if (C < 5 || (C < 8 && L < 18)) {
+      var tint = C >= 2.5 ? (warm > 0.05 ? 'warm' : warm < -0.05 ? 'cool' : '') : '';
+      if (L < 12) return tint === 'warm' ? 'warm black' : 'black';
+      if (L < 32) return (tint ? tint + ' ' : '') + 'charcoal';
+      if (L < 62) return tint === 'warm' ? 'taupe grey' : tint === 'cool' ? 'cool grey' : 'grey';
+      if (L < 85) return tint === 'warm' ? 'stone' : tint === 'cool' ? 'pale cool grey' : 'light grey';
+      return tint === 'warm' ? 'ivory' : tint === 'cool' ? 'icy white' : 'white';
+    }
+    var neon = C > 80 && L > 50 && rel > 0.85;
+    var pastel = L > 78 && C < 40;
+    var dusty = rel < 0.33 && L >= 40;
+    var name;
+    // light warm neutrals
+    if (L > 84 && C < 24 && h >= 55 && h < 115) return C < 10 ? 'ivory' : 'cream';
+    // browns: dark, or low chroma, in the red-orange-yellow range
+    if (h >= 20 && h < 85 && (h >= 42 || rel < 0.62) && ((L < 38 && C < 45) || (L < 52 && C < 26))) {
+      if (L < 20) return 'espresso';
+      if (L < 30) return 'chocolate brown';
+      if (h >= 68) return L < 40 ? 'dark bronze' : 'bronze brown';
+      return h < 45 ? 'chestnut brown' : 'brown';
+    }
+    if (h >= 45 && h < 90 && L >= 48 && L < 84 && C < 34) return L < 70 ? 'camel' : L < 78 ? 'tan' : 'beige';
+    if (h < 15 || h >= 345) name = L > 75 ? 'pink' : L > 50 ? (C > 55 ? 'raspberry' : 'rose') : L > 30 ? 'cranberry' : 'wine';
+    else if (h < 30) name = L > 75 ? 'pink' : L > 55 ? (C > 50 ? 'coral red' : 'dusty rose') : L > 38 ? 'red' : L > 25 ? 'burgundy' : 'oxblood';
+    else if (h < 50) name = L > 75 ? 'peach' : L > 55 ? 'coral' : L > 40 ? (C > 55 ? 'tomato red' : h < 42 ? 'brick red' : 'terracotta') : 'brick';
+    else if (h < 60) name = L > 75 ? 'peach' : L > 58 ? 'apricot' : L > 42 ? (C > 52 ? 'burnt orange' : 'terracotta') : 'rust';
+    else if (h < 72) name = L > 76 ? 'apricot' : L > 60 ? 'orange' : L > 38 ? 'copper' : 'rust';
+    else if (h < 78) name = L > 80 ? 'apricot' : L > 62 ? 'amber' : 'bronze';
+    else if (h < 100) name = L > 85 ? 'butter yellow' : L > 70 ? (C > 60 ? 'yellow' : 'gold') : L > 50 ? 'mustard' : 'old gold';
+    else if (h < 125) name = L > 82 ? 'pale lime' : L > 60 ? (C > 45 ? 'lime' : 'khaki') : L > 38 ? (C > 60 ? 'moss green' : 'olive') : 'dark olive';
+    else if (h < 165) name = L > 80 ? 'mint' : L > 60 ? (C > 40 ? 'bright green' : 'sage') : L > 35 ? (C > 45 ? 'emerald' : 'green') : 'forest green';
+    else if (h < 210) name = L > 80 ? 'aqua' : L > 60 ? 'turquoise' : L > 38 ? 'teal' : 'deep teal';
+    else if (h < 255) name = L > 78 ? 'icy blue' : L > 60 ? 'sky blue' : L > 38 ? (C > 35 ? 'cerulean blue' : 'steel blue') : 'petrol blue';
+    else if (h < 300) name = L > 78 ? 'baby blue' : L > 58 ? 'periwinkle' : L > 32 ? (C > 45 ? 'royal blue' : 'denim blue') : 'navy';
+    else if (h < 325) name = L > 75 ? 'lavender' : L > 55 ? 'lilac' : L > 30 ? 'purple' : 'aubergine';
+    else name = L > 75 ? 'orchid pink' : L > 50 ? (C > 55 ? 'fuchsia' : 'mauve') : L > 28 ? 'magenta' : 'plum';
+    if (neon) return 'neon ' + name.replace(/^(bright |pale |dusty )/, '');
+    if (pastel && !/pink|peach|mint|lavender|lilac|baby|icy|aqua|butter|pale|orchid|apricot/.test(name)) return 'pastel ' + name;
+    if (dusty && !/dusty|sage|khaki|steel|denim|mauve|camel|beige|olive|rose|taupe/.test(name)) return 'muted ' + name;
+    return name;
+  }
+
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+  function describeColour(lab, f) {
+    var name = colourName(lab), L = lab[0];
+    var parts = [];
+    if (!/black|charcoal|navy|espresso|chocolate|oxblood|wine|aubergine|plum|forest|petrol|deep|dark/.test(name)) {
+      if (L < 30) parts.push('deep');
+      else if (L > 75 && !/pastel|pale|icy|baby|butter|ivory|cream|beige|tan|white|light|mint|lavender|pink|peach|apricot|aqua|lilac|orchid|stone/.test(name)) parts.push('light');
+    }
+    var E = f.undertone.E;
+    if (labToLch(lab).C >= 8 && !/neon/.test(name)) {
+      if (E > 0.38) parts.push('warm'); else if (E < -0.25) parts.push('cool');
+    }
+    return (parts.length ? parts.join(', ') + ' ' : '') + name;
+  }
+
+  function factorTexts(r, person) {
+    var f = r.factors, lch = r.lch, out = {};
+    var d = f.depth.score, L = lch.L;
+    out.depth = f.depth.lightNeutral ? 'Light neutral' : d >= 92 ? 'Right depth' : L < 14 ? 'Very dark' : L < 50 ? 'Deep' : L < 62 ? 'Bit light' : L < 76 ? 'Too light' : 'Too pale';
+    var u = f.undertone;
+    if (u.olive > 0.35) out.undertone = 'Sallow risk';
+    else if (u.score >= 85) out.undertone = u.E > 0.2 ? 'Warm on warm' : u.E < -0.12 ? 'Cool, but fine' : 'Neutral, safe';
+    else if (u.score >= 60) out.undertone = u.dev > 0 ? 'Bit golden' : 'Leans cool';
+    else out.undertone = u.dev > 0 ? 'Too golden' : 'Too cool';
+    var c = f.chroma;
+    out.chroma = c.kind === 'neon' ? 'Too neon'
+      : c.kind === 'vivid' ? (c.score >= 75 ? 'Bit bright' : c.score >= 55 ? 'Bright' : 'Too bright')
+      : c.kind === 'deep-neutral' ? 'Deep neutral'
+      : c.kind === 'light-neutral' ? 'Light neutral'
+      : c.kind === 'mid-neutral' ? (c.score >= 75 ? 'Soft neutral' : 'Flat grey')
+      : c.kind === 'muted' ? (c.score >= 75 ? 'Bit muted' : c.score >= 55 ? 'Muted' : 'Too dusty')
+      : lch.L > 75 ? 'Pastel' : 'Rich';
+    var s = f.separation.score;
+    out.separation = s >= 85 ? 'Clear of skin' : s >= 60 ? 'Fairly close' : 'Too close';
+    var k = f.contrast.score;
+    out.contrast = k >= 92 ? 'Strong' : k >= 70 ? 'Balanced' : 'Low';
+    var hk = f.harmony.kind;
+    out.harmony = hk === 'echo-eyes' ? 'Echoes eyes' : hk === 'echo-hair' ? 'Echoes hair' : hk === 'pop' ? 'Eyes pop' : hk === 'analog' ? 'Tonal match' : 'Neutral';
+    return out;
+  }
+
+  var POSITIVE = {
+    depth: function () { return 'its depth matches your deep colouring'; },
+    undertone: function (r) {
+      var E = r.factors.undertone.E;
+      return E > 0.2 ? 'its warmth sits well with your neutral-warm undertone'
+        : E < -0.12 ? 'it stays close enough to neutral for your undertone' : 'its balanced temperature suits your neutral-warm undertone';
+    },
+    chroma: function (r) { return /neutral/.test(r.factors.chroma.kind) ? 'it works as a clean neutral for you' : 'its richness matches your colouring'; },
+    separation: function () { return "it stands apart from your skin, so you won't look washed out"; },
+    contrast: function () { return 'it keeps your natural high contrast'; },
+    harmony: function (r) {
+      var k = r.factors.harmony.kind;
+      return k === 'pop' ? 'it makes your brown eyes stand out' : k === 'analog' ? "it tones with your skin's warmth" : k === 'echo-hair' ? 'it echoes your dark hair' : 'it echoes your dark eyes and hair';
+    }
+  };
+  var SHORT_POS = {
+    depth: 'suits your depth', undertone: 'matches your undertone', chroma: 'has the right richness',
+    separation: 'stands clear of your skin', contrast: 'keeps your contrast',
+    harmony: function (r) { var k = r.factors.harmony.kind; return k === 'pop' ? 'makes your eyes pop' : k === 'analog' ? 'tones with your skin' : 'echoes your eyes and hair'; }
+  };
+  var NEGATIVE = {
+    depth: function (r) {
+      if (r.factors.depth.lightNeutral) return "As a light neutral it works best as a contrast piece, with something deep near your face";
+      return r.lch.L < 14 ? 'Jet black can look a little harsh on you; espresso or charcoal is softer'
+        : r.lch.L < 70 ? "It's a bit lighter than your best shades" : "It's much lighter than your best shades, so it can wash out your deep colouring";
+    },
+    undertone: function (r) {
+      var u = r.factors.undertone;
+      var mild = u.score >= 65;
+      return u.olive > 0.35 ? 'Yellow-greens at this lightness can bring out sallowness in olive-leaning skin'
+        : u.dev > 0 ? (mild ? "It's a little more golden than your undertone needs" : "It's more golden than your neutral-warm undertone needs")
+        : (mild ? 'It leans slightly cool for your neutral-warm undertone' : 'It leans too cool for your neutral-warm undertone');
+    },
+    chroma: function (r) {
+      var k = r.factors.chroma.kind;
+      return k === 'neon' || k === 'vivid' ? "It's brighter than your natural colouring, so it can overpower you"
+        : k === 'mid-neutral' ? 'Mid greys tend to look flat against your colouring'
+        : 'It looks greyed and dusty next to your clear, deep colouring';
+    },
+    separation: function (r) { return r.factors.separation.score >= 55 ? "It's fairly close to your skin tone, so keep some contrast nearby" : "It's close to your skin tone, so it can wash you out"; },
+    contrast: function (r) { return r.factors.contrast.score >= 55 ? "It's close to your skin's lightness, so pair it with something deeper" : 'It sits at the same lightness as your skin, which flattens your natural contrast'; },
+    harmony: function () { return ''; }
+  };
+  var SHORT_NEG = {
+    depth: function (r) { return r.lch.L < 14 ? 'is a touch harsh' : 'is too light for you'; },
+    undertone: function (r) { var u = r.factors.undertone; return u.olive > 0.35 ? 'can look sallow' : u.dev > 0 ? 'is too golden' : u.score >= 65 ? 'leans a little cool' : 'leans too cool'; },
+    chroma: function (r) { var k = r.factors.chroma.kind; return k === 'neon' || k === 'vivid' ? 'is too loud for you' : 'is too dusty for you'; },
+    separation: 'is too close to your skin', contrast: 'flattens your contrast', harmony: 'is neutral'
+  };
+  function call(v, r) { return typeof v === 'function' ? v(r) : v; }
+
+  function verdictFor(score) {
+    if (score >= 85) return { band: 'excellent', title: 'Excellent match', chip: 'Wear it', tone: 'good' };
+    if (score >= 75) return { band: 'very-good', title: 'Very good match', chip: 'Wear it', tone: 'good' };
+    if (score >= 65) return { band: 'good', title: 'Good match', chip: 'Works', tone: 'good' };
+    if (score >= 55) return { band: 'okay', title: 'Okay match', chip: 'Use with care', tone: 'warn' };
+    if (score >= 45) return { band: 'weak', title: 'Weak match', chip: 'Not your best', tone: 'warn' };
+    return { band: 'poor', title: 'Poor match', chip: 'Avoid near face', tone: 'bad' };
+  }
+
+  function joinWords(w) { return w.length < 2 ? w[0] : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1]; }
+
+  function suggestionWords(from, to) {
+    var a = labToLch(from), b = labToLch(to), w = [];
+    if (b.L < a.L - 5) w.push('deeper'); else if (b.L > a.L + 5) w.push('lighter');
+    var ra = a.C / Math.max(1, maxChroma(a.L, a.h)), rb = b.C / Math.max(1, maxChroma(b.L, b.h));
+    if (rb > ra + 0.08 && b.C > a.C + 4) w.push('richer'); else if (rb < ra - 0.08 && b.C < a.C - 4) w.push('softer');
+    var ea = warmthIndex(a.h) * a.C / (a.C + 18), eb = warmthIndex(b.h) * b.C / (b.C + 18);
+    if (eb > ea + 0.18) w.push('warmer'); else if (eb < ea - 0.18) w.push('cooler');
+    return w;
+  }
+
+  /*
+   * Full evaluation for the UI.
+   * opts.level: 'calibrated' | 'partial' | 'uncalibrated'; opts.mixed: boolean
+   */
+  function evaluate(lab, person, opts) {
+    opts = opts || {};
+    var level = opts.level || 'calibrated';
+    var r = scoreLab(lab, person);
+    var score = Math.round(r.score);
+    var range = scoreRange(lab, person, level);
+    var half = Math.max(1, Math.round((range.hi - range.lo) / 2));
+    var texts = factorTexts(r, person);
+    var verdict = verdictFor(score);
+
+    // Rank factors for the explanation
+    var keys = Object.keys(WEIGHTS);
+    var POS_MIN = { depth: 94, undertone: 88, chroma: 88, separation: 88, contrast: 88, harmony: 80 };
+    var pos = keys.slice().sort(function (a, b) { return r.factors[b].score * WEIGHTS[b] - r.factors[a].score * WEIGHTS[a]; })
+      .filter(function (k) { return r.factors[k].score >= POS_MIN[k] && !(k === 'harmony' && r.factors.harmony.kind === 'neutral'); });
+    var deficits = keys.filter(function (k) { return k !== 'harmony'; })
+      .map(function (k) { return { k: k, d: (100 - r.factors[k].score) * WEIGHTS[k] }; })
+      .sort(function (a, b) { return b.d - a.d; });
+    var negs = deficits.filter(function (x) {
+      if (x.k === 'chroma' && /deep-neutral|light-neutral/.test(r.factors.chroma.kind)) return false;
+      return r.factors[x.k].score < 78 && x.d >= 2.4;
+    }).slice(0, 2).map(function (x) { return x.k; });
+    var neg = negs[0] || null;
+
+    var desc = describeColour(lab, r.factors);
+    var sentences = [cap(desc) + '.'];
+    var nPos = score >= 75 ? 2 : score >= 60 ? 1 : 0;
+    if (nPos && pos.length) {
+      var p1 = call(POSITIVE[pos[0]], r), p2 = nPos > 1 && pos[1] ? call(POSITIVE[pos[1]], r) : '';
+      sentences.push(cap(p1) + (p2 ? ', and ' + p2 : '') + '.');
+    }
+    negs.slice(0, score >= 75 ? 1 : 2).forEach(function (k) { sentences.push(call(NEGATIVE[k], r) + '.'); });
+    if (r.palette.avoidD <= 6) sentences.push('It sits close to ' + r.palette.avoid.name.toLowerCase() + ', a classic colour to avoid for your season.');
+    if (opts.mixed) sentences.push('This spot mixes several colours, so the reading is an average.');
+
+    var summary = cap(desc) + (neg && score < 65
+      ? ' that ' + call(SHORT_NEG[neg], r) + (negs[1] && score < 55 ? ' and ' + call(SHORT_NEG[negs[1]], r) : '') + '.'
+      : pos.length ? ' that ' + call(SHORT_POS[pos[0]], r) + (pos[1] && score >= 75 ? ' and ' + call(SHORT_POS[pos[1]], r) : '') + '.'
+      : '.');
+
+    var isBlack = r.lch.L < 14 && r.lch.C < 8;
+    var isLightNeutral = r.factors.depth.lightNeutral;
+    var sugg = level === 'uncalibrated' || isBlack || isLightNeutral || score >= 88 ? null : suggest(lab, person, r.score);
+    var tip;
+    if (score >= 88) tip = 'This is one of your best shades.';
+    else if (isBlack) tip = 'Espresso brown or charcoal near your face would be softer still.';
+    else if (isLightNeutral) tip = r.factors.undertone.E > 0.08
+      ? 'A good light neutral for you. Wear it with something deep for the contrast you suit.'
+      : 'Warm ivory or cream is a kinder light neutral for you than stark or cool white.';
+    else if (sugg) {
+      var w = suggestionWords(lab, sugg.lab);
+      tip = w.length ? 'A ' + joinWords(w) + ' version would suit you even more.' : 'A slightly adjusted version would suit you even more.';
+    } else if (score < 55) tip = 'Keep it away from your face: trousers, shoes or bags work better.';
+    else tip = 'Pair it with a deep colour near your face to lift it.';
+
+    return {
+      score: score, range: { lo: Math.round(range.lo), hi: Math.round(range.hi), half: half },
+      level: level, mixed: !!opts.mixed,
+      verdict: verdict,
+      hex: labToHex(lab), rgb: labToRgb8(lab), lab: lab, lch: r.lch,
+      name: colourName(lab), description: desc,
+      factors: keys.map(function (k) {
+        return { key: k, label: FACTOR_LABELS[k], short: FACTOR_SHORT[k], score: Math.round(r.factors[k].score), text: texts[k] };
+      }),
+      explanation: sentences.join(' '),
+      summary: summary,
+      tip: tip,
+      suggestion: sugg ? { hex: sugg.hex, rgb: sugg.rgb, score: Math.round(sugg.score), name: colourName(sugg.lab) } : null,
+      palette: { near: r.palette.near ? r.palette.near.name : null, nearD: r.palette.nearD, avoid: r.palette.avoid ? r.palette.avoid.name : null, avoidD: r.palette.avoidD },
+      caps: r.caps,
+      raw: r
+    };
+  }
+
+  var FACTOR_LABELS = { depth: 'Depth', undertone: 'Undertone', chroma: 'Chroma', separation: 'Skin separation', contrast: 'Contrast', harmony: 'Eye / hair harmony' };
+  var FACTOR_SHORT = { depth: 'Depth', undertone: 'Undertone', chroma: 'Chroma', separation: 'Skin sep.', contrast: 'Contrast', harmony: 'Harmony' };
+
+  var API = {
+    // conversions
+    hexToRgb8: hexToRgb8, rgb8ToHex: rgb8ToHex, rgb8ToLinear: rgb8ToLinear, linearToRgb8: linearToRgb8,
+    srgbToLinear: srgbToLinear, linearToSrgb: linearToSrgb,
+    linearToXyz: linearToXyz, xyzToLinear: xyzToLinear, xyzToLab: xyzToLab, labToXyz: labToXyz,
+    labToLch: labToLch, lchToLab: lchToLab, hexToLab: hexToLab, labToHex: labToHex, labToRgb8: labToRgb8,
+    labInGamut: labInGamut, maxChroma: maxChroma, deltaE00: deltaE00, ita: ita,
+    // calibration and sampling
+    samplePatch: samplePatch, analyseWhite: analyseWhite, brightReference: brightReference, makeCalibration: makeCalibration,
+    adaptationMatrix: adaptationMatrix, correctSample: correctSample, describeCast: describeCast, REF_Y: REF_Y,
+    // scoring
+    buildPerson: buildPerson, warmthIndex: warmthIndex, scoreLab: scoreLab, quickScore: quickScore,
+    scoreRange: scoreRange, suggest: suggest, evaluate: evaluate, colourName: colourName, verdictFor: verdictFor,
+    WEIGHTS: WEIGHTS, FACTOR_LABELS: FACTOR_LABELS, mat3vec: mat3vec, D65: D65
+  };
+  root.ColourEngine = API;
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/*
+ * Colour Check — user interface.
+ * Flow: photo → tap something white (calibrate) → tap the fabric → score.
+ * The photo is decoded into a <canvas> in this page and read there. Nothing is
+ * uploaded, stored or sent anywhere.
+ */
+(function () {
+  'use strict';
+
+  var E = window.ColourEngine, PROFILE = window.COLOUR_PROFILE;
+  var person = E.buildPerson(PROFILE);
+  var app = document.getElementById('app'), main = document.getElementById('main');
+  var toastEl = document.getElementById('toast');
+  var pickCamera = document.getElementById('pickCamera'), pickFile = document.getElementById('pickFile');
+  var DESKTOP = window.matchMedia('(min-width: 900px) and (min-aspect-ratio: 5/4)');
+  var MAX_SIDE = 1600;
+
+  var S = {
+    screen: 'start',      // start | work | score
+    mode: 'calibrate',    // calibrate | pick | result   (work screen)
+    refType: 'white',     // white | grey
+    img: null,            // { w, h, data }
+    whitePt: null, white: null,
+    calib: null, level: 'uncalibrated',
+    fabricPt: null, fabric: null, fabricLab: null,
+    result: null,
+    kbd: null
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* Icons                                                            */
+  /* ---------------------------------------------------------------- */
+  function svg(w, d, sw) {
+    return '<svg width="' + w + '" height="' + w + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (sw || 2) +
+      '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+  }
+  var I = {
+    back: function () { return svg(20, '<path d="M15 18l-6-6 6-6"></path>'); },
+    next: function () { return svg(18, '<path d="M9 18l6-6-6-6"></path>', 2.2); },
+    check: function (w) { return svg(w || 18, '<path d="M5 12l5 5 9-10"></path>', 2.6); },
+    target: function () { return svg(20, '<circle cx="12" cy="12" r="9"></circle><path d="M12 3v18"></path>'); },
+    camera: function () { return svg(52, '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"></path><circle cx="12" cy="13.5" r="3.5"></circle>', 1.6); },
+    gallery: function () { return svg(28, '<rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="M21 16l-5-5-9 9"></path>', 1.8); },
+    upload: function () { return svg(56, '<path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path>', 1.5); },
+    clip: function () { return svg(18, '<path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"></path>'); },
+    lock: function () { return svg(15, '<rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path>'); },
+    again: function () { return svg(18, '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path>'); },
+    copy: function () { return svg(18, '<rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path>'); },
+    bulb: function () { return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A4F0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2z"></path></svg>'; },
+    alert: function (w) { return svg(w || 13, '<circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16.5v.5"></path>', 2.4); }
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* Helpers                                                          */
+  /* ---------------------------------------------------------------- */
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function isDesktop() { return DESKTOP.matches; }
+  function rgbDots(rgb) { return rgb.join('·'); }
+  function hexOfLab(lab) { return E.labToHex(lab); }
+  var toastTimer = null;
+  function toast(msg, ms) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, ms || 3200);
+  }
+  function tone(score) { return score >= 75 ? 'good' : score >= 55 ? 'warn' : 'bad'; }
+  function toneColour(t) { return t === 'good' ? 'var(--good)' : t === 'warn' ? 'var(--warn)' : t === 'bad' ? 'var(--bad)' : 'var(--grey)'; }
+  function castShort(cast) {
+    if (!cast) return 'lighting checked';
+    return { warm: 'warm light corrected', cool: 'cool light corrected', green: 'green cast corrected', pink: 'pink cast corrected', neutral: 'light was already neutral' }[cast.tone] || 'lighting corrected';
+  }
+  function patchRadius(kind) {
+    var m = Math.min(S.img.w, S.img.h);
+    return kind === 'white' ? Math.max(3, Math.round(m * 0.008)) : Math.max(4, Math.round(m * 0.012));
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Persistent photo stage + loupe                                   */
+  /* ---------------------------------------------------------------- */
+  var stage = document.createElement('div');
+  stage.className = 'stage';
+  var photo = document.createElement('canvas');
+  photo.className = 'photo';
+  photo.tabIndex = 0;
+  photo.setAttribute('role', 'img');
+  var pctx = photo.getContext('2d', { willReadFrequently: true });
+  var mWhite = document.createElement('div'); mWhite.className = 'marker white'; mWhite.hidden = true;
+  var mFabric = document.createElement('div'); mFabric.className = 'marker fabric'; mFabric.hidden = true;
+  stage.appendChild(photo); stage.appendChild(mWhite); stage.appendChild(mFabric);
+
+  var loupe = document.createElement('div'); loupe.className = 'loupe'; loupe.hidden = true;
+  var lc = document.createElement('canvas'); loupe.appendChild(lc);
+  document.body.appendChild(loupe);
+  var lctx = lc.getContext('2d');
+
+  function fitStage() {
+    var box = main.querySelector('.stage-box');
+    if (!box || !S.img) return;
+    var bw = box.clientWidth, bh = box.clientHeight;
+    if (!bw || !bh) return;
+    var k = Math.min(bw / S.img.w, bh / S.img.h);
+    stage.style.width = Math.max(1, Math.floor(S.img.w * k)) + 'px';
+    stage.style.height = Math.max(1, Math.floor(S.img.h * k)) + 'px';
+    placeMarkers();
+  }
+
+  function placeMarkers() {
+    if (!S.img) return;
+    var sw = stage.clientWidth, sh = stage.clientHeight;
+    function put(el, pt, show) {
+      el.hidden = !(show && pt);
+      if (show && pt) { el.style.left = (pt.x / S.img.w * sw) + 'px'; el.style.top = (pt.y / S.img.h * sh) + 'px'; }
+    }
+    put(mWhite, S.whitePt, S.mode === 'calibrate');
+    put(mFabric, S.fabricPt, S.mode !== 'calibrate');
+  }
+
+  function toImage(clientX, clientY) {
+    var r = photo.getBoundingClientRect();
+    var x = (clientX - r.left) / r.width * S.img.w, y = (clientY - r.top) / r.height * S.img.h;
+    return { x: Math.max(0, Math.min(S.img.w - 0.01, x)), y: Math.max(0, Math.min(S.img.h - 0.01, y)) };
+  }
+
+  function drawLoupe(pt, clientX, clientY, kind) {
+    var size = 132, dpr = window.devicePixelRatio || 1;
+    if (lc.width !== size * dpr) { lc.width = size * dpr; lc.height = size * dpr; }
+    var disp = stage.clientWidth / S.img.w;
+    var zoom = Math.max(2, disp * 4);                 // image px → loupe css px
+    var src = size / zoom;
+    lctx.imageSmoothingEnabled = false;
+    lctx.fillStyle = '#ccc'; lctx.fillRect(0, 0, lc.width, lc.height);
+    lctx.drawImage(photo, pt.x - src / 2, pt.y - src / 2, src, src, 0, 0, lc.width, lc.height);
+    var c = lc.width / 2, rr = patchRadius(S.mode === 'calibrate' ? 'white' : 'fabric') * zoom * dpr;
+    lctx.lineWidth = 2 * dpr;
+    lctx.strokeStyle = '#fff'; lctx.beginPath(); lctx.arc(c, c, rr, 0, Math.PI * 2); lctx.stroke();
+    lctx.strokeStyle = '#161616'; lctx.lineWidth = 1 * dpr; lctx.beginPath(); lctx.arc(c, c, rr + 1.5 * dpr, 0, Math.PI * 2); lctx.stroke();
+    lctx.beginPath(); lctx.moveTo(c - rr - 10 * dpr, c); lctx.lineTo(c - rr - 2 * dpr, c); lctx.moveTo(c + rr + 2 * dpr, c); lctx.lineTo(c + rr + 10 * dpr, c);
+    lctx.moveTo(c, c - rr - 10 * dpr); lctx.lineTo(c, c - rr - 2 * dpr); lctx.moveTo(c, c + rr + 2 * dpr); lctx.lineTo(c, c + rr + 10 * dpr);
+    lctx.strokeStyle = '#fff'; lctx.lineWidth = 2 * dpr; lctx.stroke();
+    var left, top, vw = window.innerWidth, vh = window.innerHeight;
+    if (kind === 'mouse' || kind === 'key') { left = clientX + 24; top = clientY - size - 24; }
+    else { left = clientX - size / 2; top = clientY - size - 70; if (top < 8) top = clientY + 60; }
+    left = Math.max(8, Math.min(vw - size - 8, left));
+    top = Math.max(8, Math.min(vh - size - 8, top));
+    loupe.style.left = left + 'px'; loupe.style.top = top + 'px';
+    loupe.hidden = false;
+  }
+  function hideLoupe() { loupe.hidden = true; }
+
+  /* ---------------------------------------------------------------- */
+  /* Sampling                                                         */
+  /* ---------------------------------------------------------------- */
+  function sampleAt(pt, kind) {
+    var r = patchRadius(kind);
+    var smp = E.samplePatch(S.img.data, S.img.w, S.img.h, pt.x, pt.y, r, kind);
+    if (kind === 'fabric' && smp && smp.mixed) {
+      // a print or stripe: try a smaller spot before calling it mixed
+      for (var k = 2; k <= 4; k++) {
+        var small = E.samplePatch(S.img.data, S.img.w, S.img.h, pt.x, pt.y, Math.max(2, r / k), kind);
+        if (small && !small.mixed && small.kept >= 6) { small.small = true; return small; }
+      }
+    }
+    return smp;
+  }
+
+  // Live preview while the finger / mouse is down (no full re-render)
+  var rafPending = false, pendingPt = null;
+  function preview(pt) {
+    pendingPt = pt;
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function () {
+      rafPending = false;
+      var p = pendingPt; if (!p || !S.img) return;
+      if (S.mode === 'calibrate') {
+        var w = sampleAt(p, 'white'); if (!w) return;
+        setLive(w.rawHex, E.hexToRgb8(w.rawHex));
+      } else {
+        var f = sampleAt(p, 'fabric'); if (!f) return;
+        var lab = E.correctSample(f.lin, S.calib);
+        setLive(hexOfLab(lab), E.labToRgb8(lab));
+      }
+    });
+  }
+  function setLive(hex, rgb) {
+    var sw = main.querySelector('[data-live-sw]'), hx = main.querySelector('[data-live-hex]');
+    if (sw) sw.style.background = hex;
+    if (hx) hx.innerHTML = '<b>' + hex + '</b><small>' + rgbDots(rgb) + '</small>';
+  }
+
+  function commit(pt) {
+    if (!S.img) return;
+    if (S.mode === 'calibrate') {
+      var w = sampleAt(pt, 'white'); if (!w) return;
+      S.whitePt = pt;
+      S.white = E.analyseWhite(w, S.refType, S.img.brightY);
+      render();
+      return;
+    }
+    var f = sampleAt(pt, 'fabric'); if (!f) return;
+    S.fabricPt = pt;
+    S.fabric = f;
+    S.fabricLab = E.correctSample(f.lin, S.calib);
+    if (S.mode === 'result') { evaluateNow(); }
+    render();
+  }
+
+  function evaluateNow() {
+    S.result = E.evaluate(S.fabricLab, person, { level: S.level, mixed: S.fabric && S.fabric.mixed });
+  }
+
+  // Pointer handling on the photo
+  var activeId = null;
+  photo.addEventListener('pointerdown', function (e) {
+    if (!S.img || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    e.preventDefault();
+    try { photo.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    activeId = e.pointerId;
+    var pt = toImage(e.clientX, e.clientY);
+    drawLoupe(pt, e.clientX, e.clientY, e.pointerType);
+    preview(pt);
+  });
+  photo.addEventListener('pointermove', function (e) {
+    if (!S.img) return;
+    var pressed = activeId === e.pointerId;
+    if (!pressed && e.pointerType !== 'mouse') return;
+    var pt = toImage(e.clientX, e.clientY);
+    drawLoupe(pt, e.clientX, e.clientY, e.pointerType);
+    if (pressed) preview(pt);
+  });
+  photo.addEventListener('pointerup', function (e) {
+    if (activeId !== e.pointerId) return;
+    activeId = null;
+    var pt = toImage(e.clientX, e.clientY);
+    if (e.pointerType !== 'mouse') hideLoupe();
+    commit(pt);
+  });
+  photo.addEventListener('pointercancel', function () { activeId = null; hideLoupe(); });
+  photo.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && activeId === null) hideLoupe(); });
+  photo.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  // Keyboard eyedropper: arrows move, Enter / Space samples
+  photo.addEventListener('keydown', function (e) {
+    if (!S.img) return;
+    var step = Math.max(1, Math.round(Math.min(S.img.w, S.img.h) * (e.shiftKey ? 0.05 : 0.01)));
+    if (!S.kbd) S.kbd = { x: S.img.w / 2, y: S.img.h / 2 };
+    var k = e.key, moved = true;
+    if (k === 'ArrowLeft') S.kbd.x -= step; else if (k === 'ArrowRight') S.kbd.x += step;
+    else if (k === 'ArrowUp') S.kbd.y -= step; else if (k === 'ArrowDown') S.kbd.y += step;
+    else if (k === 'Enter' || k === ' ') { e.preventDefault(); hideLoupe(); commit({ x: S.kbd.x, y: S.kbd.y }); return; }
+    else if (k === 'Escape') { hideLoupe(); return; } else moved = false;
+    if (!moved) return;
+    e.preventDefault();
+    S.kbd.x = Math.max(0, Math.min(S.img.w - 1, S.kbd.x)); S.kbd.y = Math.max(0, Math.min(S.img.h - 1, S.kbd.y));
+    var r = photo.getBoundingClientRect();
+    var cx = r.left + S.kbd.x / S.img.w * r.width, cy = r.top + S.kbd.y / S.img.h * r.height;
+    drawLoupe(S.kbd, cx, cy, 'key');
+    preview(S.kbd);
+  });
+  photo.addEventListener('blur', hideLoupe);
+
+  /* ---------------------------------------------------------------- */
+  /* Loading a photo                                                  */
+  /* ---------------------------------------------------------------- */
+  function loadFile(file) {
+    if (!file) return;
+    if (file.type && !/^image\//.test(file.type)) { toast('Please choose a photo (JPG, PNG, WebP or HEIC).'); return; }
+    decode(file).then(function (src) {
+      var nw = src.width, nh = src.height;
+      if (!nw || !nh) throw new Error('empty');
+      var k = Math.min(1, MAX_SIDE / Math.max(nw, nh));
+      var w = Math.max(1, Math.round(nw * k)), h = Math.max(1, Math.round(nh * k));
+      photo.width = w; photo.height = h;
+      pctx.imageSmoothingEnabled = true; pctx.imageSmoothingQuality = 'high';
+      pctx.drawImage(src.image, 0, 0, w, h);
+      if (src.close) src.close();
+      var data = pctx.getImageData(0, 0, w, h).data;
+      S.img = { w: w, h: h, data: data, brightY: E.brightReference(data, w, h) };
+      S.whitePt = S.white = S.calib = S.fabricPt = S.fabric = S.fabricLab = S.result = S.kbd = null;
+      S.level = 'uncalibrated';
+      S.screen = 'work'; S.mode = 'calibrate';
+      photo.setAttribute('aria-label', 'Your photo. Tap, or use the arrow keys and Enter, to sample a colour.');
+      pushNav();
+      render();
+    }).catch(function () {
+      toast("This browser can't open that file. Try a JPG or PNG" + (/heic|heif/i.test((file.type || '') + (file.name || '')) ? ' (HEIC photos open in Safari).' : '.'));
+    });
+  }
+
+  // Decode straight from the file (no URL, so the pixels are always readable), with a fallback
+  function decode(file) {
+    function viaBitmap(opts) {
+      return createImageBitmap(file, opts).then(function (bmp) {
+        return { image: bmp, width: bmp.width, height: bmp.height, close: function () { bmp.close && bmp.close(); } };
+      });
+    }
+    function viaImage() {
+      return new Promise(function (resolve, reject) {
+        var url = URL.createObjectURL(file), img = new Image();
+        img.onload = function () { resolve({ image: img, width: img.naturalWidth, height: img.naturalHeight, close: function () { URL.revokeObjectURL(url); } }); };
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('decode')); };
+        img.src = url;
+      });
+    }
+    if (typeof createImageBitmap !== 'function') return viaImage();
+    return viaBitmap({ imageOrientation: 'from-image' })
+      .catch(function () { return viaBitmap(undefined); })
+      .catch(viaImage);
+  }
+  pickCamera.addEventListener('change', function () { loadFile(pickCamera.files[0]); pickCamera.value = ''; });
+  pickFile.addEventListener('change', function () { loadFile(pickFile.files[0]); pickFile.value = ''; });
+
+  // Drag & drop and paste (desktop)
+  var dragDepth = 0;
+  window.addEventListener('dragenter', function (e) { e.preventDefault(); dragDepth++; var dz = main.querySelector('.dropzone'); if (dz) dz.classList.add('over'); });
+  window.addEventListener('dragleave', function () { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) { var dz = main.querySelector('.dropzone'); if (dz) dz.classList.remove('over'); } });
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) {
+    e.preventDefault(); dragDepth = 0;
+    var dz = main.querySelector('.dropzone'); if (dz) dz.classList.remove('over');
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+  window.addEventListener('paste', function (e) {
+    var items = e.clipboardData && e.clipboardData.files;
+    if (items && items[0] && /^image\//.test(items[0].type)) loadFile(items[0]);
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Navigation (Android back button support when top-level)          */
+  /* ---------------------------------------------------------------- */
+  var canHistory = false;
+  try { canHistory = window.top === window && !!window.history.pushState; } catch (err) { canHistory = false; }
+  function pushNav() { if (canHistory) { try { history.pushState({ cc: 1 }, ''); } catch (err) { /* ignore */ } } }
+  function goBack() {
+    if (canHistory && history.state && history.state.cc) { try { history.back(); return; } catch (err) { /* fall through */ } }
+    stepBack();
+  }
+  function stepBack() {
+    hideLoupe();
+    if (S.screen === 'score') { S.screen = 'work'; S.mode = 'pick'; }
+    else if (S.screen === 'work') {
+      if (S.mode === 'result') S.mode = 'pick';
+      else if (S.mode === 'pick') S.mode = 'calibrate';
+      else { S.screen = 'start'; }
+    }
+    render();
+  }
+  window.addEventListener('popstate', function () { if (S.screen !== 'start') stepBack(); });
+
+  /* ---------------------------------------------------------------- */
+  /* Actions                                                          */
+  /* ---------------------------------------------------------------- */
+  var ACTIONS = {
+    camera: function () { pickCamera.click(); },
+    gallery: function () { pickFile.click(); },
+    file: function () { pickFile.click(); },
+    back: function () { goBack(); },
+    restart: function () {
+      hideLoupe();
+      S.screen = 'start'; S.img = null; S.result = null;
+      if (canHistory) { try { history.replaceState(null, ''); } catch (err) { /* ignore */ } }
+      render();
+    },
+    ref: function (el) {
+      S.refType = el.getAttribute('data-ref') === 'grey' ? 'grey' : 'white';
+      if (S.whitePt) S.white = E.analyseWhite(sampleAt(S.whitePt, 'white'), S.refType, S.img.brightY);
+      render();
+    },
+    useWhite: function () {
+      if (!S.white || !S.white.ok) return;
+      S.calib = E.makeCalibration(S.white);
+      S.level = S.white.level === 'good' ? 'calibrated' : 'partial';
+      if (S.fabric) S.fabricLab = E.correctSample(S.fabric.lin, S.calib);
+      S.mode = 'pick'; pushNav(); render();
+    },
+    skip: function () {
+      S.calib = null; S.level = 'uncalibrated';
+      if (S.fabric) S.fabricLab = E.correctSample(S.fabric.lin, null);
+      S.mode = 'pick'; pushNav(); render();
+    },
+    recalibrate: function () { S.mode = 'calibrate'; S.screen = 'work'; render(); },
+    continue: function (el) {
+      if (!S.fabricLab) return;
+      el.disabled = true;
+      setTimeout(function () {
+        evaluateNow();
+        if (isDesktop()) { S.mode = 'result'; } else { S.screen = 'score'; }
+        pushNav(); render();
+      }, 16);
+    },
+    copy: function () {
+      if (!S.result) return;
+      var hex = S.result.hex;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(hex).then(function () { toast('Copied ' + hex); }, function () { toast(hex); });
+      } else toast(hex);
+    }
+  };
+  main.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-act]');
+    if (!el || el.disabled) return;
+    var fn = ACTIONS[el.getAttribute('data-act')];
+    if (fn) fn(el);
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Templates                                                        */
+  /* ---------------------------------------------------------------- */
+  function startMobile() {
+    return '<section class="m-start">' +
+      '<div class="brand">Colour Check</div>' +
+      '<div class="m-start-actions">' +
+      '<button class="big-primary" data-act="camera">' + I.camera() + '<span class="t">Take photo</span><span class="s">Daylight or bright light. Include a white price tag or receipt next to the fabric.</span></button>' +
+      '<button class="big-secondary" data-act="gallery">' + I.gallery() + 'Choose from gallery</button>' +
+      '</div>' +
+      '<p class="m-foot">' + I.lock() + 'Photos never leave your phone</p>' +
+      '</section>';
+  }
+  function startDesktop() {
+    return '<section class="d-start"><div class="dropzone">' + I.upload() +
+      '<h1>Drop a fabric photo here</h1><p class="or">or</p>' +
+      '<button class="btn-primary" data-act="file">' + I.clip() + 'Choose file</button>' +
+      '<p class="hint">JPG, PNG or WebP. Include something white (a price tag or receipt) next to the fabric for accurate colour. The photo never leaves your browser.</p>' +
+      '</div></section>';
+  }
+
+  function refCard() {
+    var w = S.white, cls = '', title, sub, sw = '';
+    if (!w) {
+      title = S.refType === 'grey' ? 'Tap the grey card' : 'No white picked yet';
+      sub = S.refType === 'grey' ? 'Hold it in the same light as the fabric.' : 'A price tag, receipt or white card in the same photo works best.';
+    } else {
+      sw = ' style="background:' + w.hex + '"';
+      if (!w.ok) { cls = ' error'; title = "Can't use this spot"; sub = w.message; }
+      else if (w.level === 'warn') { cls = ' warn'; title = w.cast.label; sub = w.message; }
+      else { title = w.cast.label; sub = 'Looks good. Tap “Use this white”.'; }
+    }
+    return '<div class="ref-card' + cls + '"><div class="sw" data-live-sw' + sw + '></div><div class="tx"><b>' + esc(title) + '</b><span>' + esc(sub) + '</span></div></div>';
+  }
+
+  function refToggle() {
+    return '<div class="seg" role="group" aria-label="Reference type">' +
+      '<button data-act="ref" data-ref="white" aria-pressed="' + (S.refType === 'white') + '">White</button>' +
+      '<button data-act="ref" data-ref="grey" aria-pressed="' + (S.refType === 'grey') + '">Grey card</button></div>';
+  }
+
+  function calStatus() {
+    if (S.level === 'calibrated') return { tone: 'good', text: 'Calibrated · ' + castShort(S.calib.cast), pill: 'Calibrated' };
+    if (S.level === 'partial') return { tone: 'warn', text: 'Partly calibrated · white was overexposed', pill: 'Partly calibrated' };
+    return { tone: 'warn', text: 'Not calibrated · lighting may shift colours', pill: 'Not calibrated' };
+  }
+
+  function colourBar(hex, rgb, inner, emptyText) {
+    var swStyle = hex ? ' style="background:' + hex + '"' : '';
+    var hx = hex ? '<b>' + hex + '</b><small>' + rgbDots(rgb) + '</small>' : '<span class="empty">' + esc(emptyText || 'Tap the photo') + '</span>';
+    return '<div class="colour-bar"><div class="cb-sw" data-live-sw' + swStyle + '>' + (inner || '') + '</div><div class="cb-hex" data-live-hex>' + hx + '</div></div>';
+  }
+
+  function workMobile() {
+    var head, panel;
+    if (S.mode === 'calibrate') {
+      head = '<button class="icon-btn" data-act="back" aria-label="Back">' + I.back() + '</button>' +
+        '<div class="m-title"><span class="k">Step 1 of 2 · Calibrate</span><span class="t">' + (S.refType === 'grey' ? 'Tap the grey card' : 'Tap something white') + '</span></div>' +
+        '<span class="head-spacer" aria-hidden="true"></span>';
+      panel = '<div class="status-line"><span class="st">Reference</span>' + refToggle() + '</div>' + refCard() +
+        '<button class="btn-primary block" data-act="useWhite"' + (S.white && S.white.ok ? '' : ' disabled') + '>' + I.check() + 'Use this white</button>' +
+        '<button class="btn-text" data-act="skip">Skip for now (less accurate)</button>';
+    } else {
+      var st = calStatus();
+      head = '<button class="icon-btn" data-act="back" aria-label="Back">' + I.back() + '</button>' +
+        '<div class="m-title center"><span class="t">Tap the fabric to sample</span></div>' +
+        '<button class="icon-btn" data-act="recalibrate" aria-label="Calibrate white point">' + I.target() + '</button>';
+      var hex = S.fabricLab ? hexOfLab(S.fabricLab) : null, rgb = S.fabricLab ? E.labToRgb8(S.fabricLab) : null;
+      var right = (S.fabric && S.level !== 'uncalibrated') ? '<span class="raw"><i class="chip-sw" style="background:' + S.fabric.rawHex + '"></i>Camera <span class="mono">' + S.fabric.rawHex + '</span></span>' : '';
+      var left = S.level === 'uncalibrated'
+        ? '<span class="st warn">' + I.alert() + 'Not calibrated · <button class="link-btn" data-act="recalibrate">Calibrate</button></span>'
+        : '<span class="st ' + st.tone + '">' + (st.tone === 'good' ? I.check(13) : I.alert()) + esc(st.text) + '</span>';
+      var inner = S.fabric && S.fabric.mixed ? '<span class="pill glass warn">Mixed colours here</span>' : '';
+      panel = '<div class="status-line">' + left + right + '</div>' + colourBar(hex, rgb, inner, 'Tap the fabric') +
+        '<button class="btn-primary block" data-act="continue"' + (S.fabricLab ? '' : ' disabled') + '>Continue' + I.next() + '</button>';
+    }
+    return '<section class="work"><div class="m-head">' + head + '</div>' +
+      '<div class="stage-wrap"><div class="stage-box"></div></div>' +
+      '<div class="panel">' + panel + '</div></section>';
+  }
+
+  function guide(step, heading, tips, extra) {
+    return '<div class="guide-card"><div class="row"><span class="pill ink">' + step + '</span>' + (extra || '') + '</div><h2>' + heading + '</h2></div>' +
+      '<div class="tips3">' + tips.map(function (t, i) { return '<div class="tipcard"><span class="num">' + (i + 1) + '</span><span>' + t + '</span></div>'; }).join('') + '</div>';
+  }
+
+  function workDesktop() {
+    var panel, cls = 'panel';
+    if (S.mode === 'calibrate') {
+      var w = S.white, inner = '', msg = '';
+      if (w) {
+        inner = w.ok ? '<span class="pill glass' + (w.level === 'warn' ? ' warn' : '') + '">' + esc(w.cast.label) + '</span>' : '<span class="pill bad">Not usable</span>';
+        if (!w.ok) msg = '<div class="msg error">' + esc(w.message) + '</div>';
+        else if (w.level === 'warn') msg = '<div class="msg warn">' + esc(w.message) + '</div>';
+      }
+      panel = guide('Step 1 of 2', S.refType === 'grey' ? 'Click the grey card in the photo' : 'Click something white in the photo',
+        S.refType === 'grey' ? ['Hold the card in the same light', 'Click its flat middle', 'Set again for each photo'] : ['Find a price tag or receipt', 'Click its flat, plain part', 'Set again for each photo'], refToggle()) +
+        colourBar(w ? w.hex : null, w ? E.hexToRgb8(w.hex) : null, inner, 'Click the photo') + msg +
+        '<div class="grow"></div>' +
+        '<button class="btn-primary block" data-act="useWhite"' + (w && w.ok ? '' : ' disabled') + '>' + I.check() + 'Use this white</button>' +
+        '<button class="btn-text" data-act="skip">Skip for now (less accurate)</button>';
+    } else if (S.mode === 'pick') {
+      var st = calStatus();
+      var hex = S.fabricLab ? hexOfLab(S.fabricLab) : null, rgb = S.fabricLab ? E.labToRgb8(S.fabricLab) : null;
+      var pills = '<span class="pill ' + st.tone + '">' + (st.tone === 'good' ? I.check(12) : I.alert(12)) + esc(st.pill) + '</span>' +
+        '<button class="pill glass" data-act="recalibrate" style="border:0;cursor:pointer">' + (S.level === 'uncalibrated' ? 'Calibrate' : 'Reset') + '</button>' +
+        (S.fabric && S.fabric.mixed ? '<span class="pill glass warn">Mixed colours here</span>' : '');
+      var note = S.level === 'uncalibrated' ? '<div class="msg warn">Without a white reference, store lighting can shift the colour. The score will be shown as an estimate.</div>' : '';
+      panel = guide('Step 2 of 2', 'Click the shirt to pick its colour', ['Pick a flat, even area', 'Stay off folds and shine', 'Check the preview matches']) +
+        colourBar(hex, rgb, pills, 'Click the fabric') + note +
+        '<div class="grow"></div>' +
+        '<button class="btn-primary block" data-act="continue"' + (S.fabricLab ? '' : ' disabled') + '>Continue' + I.next() + '</button>' +
+        '<button class="btn-text" data-act="restart">Check another photo</button>';
+    } else {
+      cls = 'panel result';
+      panel = resultDesktop();
+    }
+    return '<section class="work"><div class="stage-wrap"><div class="stage-box"></div></div><div class="' + cls + '">' + panel + '</div></section>';
+  }
+
+  /* ---------- result pieces ---------- */
+  function ring(r) {
+    var C = 326.73, est = r.level === 'uncalibrated';
+    var t = est ? 'warn' : tone(r.score), col = toneColour(t);
+    var track = t === 'good' ? '#E6EFE9' : t === 'warn' ? '#F7E6CC' : '#F6DAD7';
+    var arcs = '<circle cx="60" cy="60" r="52" fill="none" stroke="' + (est ? '#EDEDED' : track) + '" stroke-width="12"></circle>';
+    if (est) arcs += '<circle cx="60" cy="60" r="52" fill="none" stroke="#F3D9B0" stroke-width="12" stroke-dasharray="' + (r.range.hi / 100 * C).toFixed(1) + ' ' + C + '" transform="rotate(-90 60 60)"></circle>';
+    arcs += '<circle cx="60" cy="60" r="52" fill="none" stroke="' + col + '" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + (Math.max(1, (est ? r.range.lo : r.score)) / 100 * C).toFixed(1) + ' ' + C + '" transform="rotate(-90 60 60)"></circle>';
+    var label = est ? 'Estimated score ' + r.score + ', plus or minus ' + r.range.half : 'Score ' + r.score + ' out of 100';
+    return '<div class="ring"><svg viewBox="0 0 120 120" role="img" aria-label="' + label + '">' + arcs + '</svg>' +
+      '<div class="val"><span class="num">' + (est ? '~' : '') + r.score + '</span><span class="of">' + (est ? '± ' + r.range.half + ' / 100' : '/ 100') + '</span></div></div>';
+  }
+
+  function headline(r) {
+    if (r.level !== 'uncalibrated') return r.verdict.title;
+    var lo = E.verdictFor(r.range.lo), hi = E.verdictFor(r.range.hi);
+    if (lo.band === hi.band) return 'Likely ' + (/^[aeiou]/i.test(lo.title) ? 'an ' : 'a ') + lo.title.toLowerCase();
+    return lo.title.replace(' match', '') + ' to ' + hi.title.replace(' match', '').toLowerCase() + ' match';
+  }
+
+  function chip(r) {
+    if (r.mixed) return '<span class="pill warn">' + I.alert(11) + 'Mixed reading</span>';
+    if (r.level === 'uncalibrated') return '<span class="pill warn">Estimate</span>';
+    var t = r.verdict.tone;
+    return '<span class="pill ' + t + '">' + (t === 'good' ? I.check(13) : I.alert()) + esc(r.verdict.chip) + '</span>';
+  }
+
+  function scoreCard(r, withSummary, withStatus) {
+    var pills = chip(r);
+    if (withStatus) {
+      var st = calStatus();
+      if (S.level !== 'uncalibrated') pills += '<span class="pill ' + st.tone + '">' + (st.tone === 'good' ? I.check(11) : I.alert(11)) + esc(st.pill) + '</span>';
+      else pills += '<span class="pill warn">' + I.alert(11) + 'Not calibrated</span>';
+    }
+    return '<section class="score-card">' + ring(r) + '<div class="score-text"><div class="pills">' + pills + '</div><h2>' + esc(headline(r)) + '</h2>' +
+      (withSummary ? '<p>' + esc(r.summary) + '</p>' : '') + '</div></section>';
+  }
+
+  function colouring(r) {
+    function sw(hex, label, me) { return '<div class="sw' + (me ? ' me' : '') + '"><i style="background:' + hex + '"></i><span>' + label + '</span></div>'; }
+    return '<section class="colouring"><div class="label">Next to your colouring</div><div class="row">' +
+      sw(r.hex, 'Fabric', true) + '<div class="line"></div>' + sw(person.skinHex, 'Skin') + sw(person.hairHex, 'Hair') + sw(person.eyesHex, 'Eyes') +
+      '</div></section>';
+  }
+
+  function factors(r, long) {
+    var est = r.level === 'uncalibrated';
+    return '<section class="factor-grid">' + r.factors.map(function (f) {
+      var neutral = f.key === 'harmony' && f.text === 'Neutral';
+      var col = est || neutral ? 'var(--grey)' : toneColour(f.score >= 75 ? 'good' : f.score >= 45 ? 'warn' : 'bad');
+      return '<div class="factor"><div class="top"><span>' + esc(long ? f.label : f.short) + '</span><b>' + f.score + '</b></div>' +
+        '<div class="bar"><i style="width:' + Math.max(2, f.score) + '%;background:' + col + '"></i></div><span class="txt">' + esc(f.text) + '</span></div>';
+    }).join('') + '</section>';
+  }
+
+  function tipBlock(r) {
+    if (r.mixed) {
+      return '<div class="tip"><div class="tl">' + I.alert(18) + '<span>This spot mixes several colours (a print or stripe), so the score is for their average. Tap a single colour for a reliable result.</span></div></div>';
+    }
+    if (r.level === 'uncalibrated') {
+      return '<div class="tip"><div class="tl">' + I.bulb() + '<span>Tap a white tag to firm up this score.</span>' +
+        '<button class="btn-primary" data-act="recalibrate">Calibrate</button></div></div>';
+    }
+    var s = r.suggestion;
+    var sug = s ? '<div class="sugg"><div class="s-sw" style="background:' + s.hex + '"><span class="pill glass">Scores ~' + s.score + '</span></div>' +
+      '<div class="s-hex"><b>' + s.hex + '</b><small>' + rgbDots(s.rgb) + '</small></div></div>' : '';
+    return '<div class="tip"><div class="tl">' + I.bulb() + '<span>' + esc(r.tip) + '</span></div>' + sug + '</div>';
+  }
+
+  function scoreMobile() {
+    var r = S.result, st = calStatus();
+    var raw = S.level === 'uncalibrated'
+      ? '<span class="raw st-warn">' + I.alert(10) + 'Not calibrated · raw camera colour</span>'
+      : '<span class="raw st-' + st.tone + '">' + (st.tone === 'good' ? I.check(10) : I.alert(10)) + esc(st.pill) + ' · <i class="chip-sw" style="width:10px;height:10px;background:' + S.fabric.rawHex + '"></i><span class="mono">' + S.fabric.rawHex + '</span></span>';
+    return '<section class="m-score">' +
+      '<div class="band" style="background:' + r.hex + '"><div class="left">' +
+      '<button class="icon-btn glass" data-act="back" aria-label="Back to photo">' + I.back() + '</button></div>' +
+      '<div class="hex-chip"><b>' + r.hex + '</b><small>RGB ' + r.rgb.join(', ') + '</small>' + raw + '</div></div>' +
+      '<div class="m-score-body">' + scoreCard(r, true, false) + colouring(r) + factors(r, false) + tipBlock(r) +
+      '<div class="grow"></div><button class="btn-primary block" data-act="restart">' + I.again() + 'Check another</button></div></section>';
+  }
+
+  function resultDesktop() {
+    var r = S.result, st = calStatus();
+    var raw = S.level === 'uncalibrated' ? '' : '<span class="sep"></span><span class="raw"><i class="chip-sw" style="width:14px;height:14px;background:' + S.fabric.rawHex + '"></i>Camera <span class="mono">' + S.fabric.rawHex + '</span></span>';
+    var pill = '<span class="pill ' + st.tone + '">' + (st.tone === 'good' ? I.check(12) : I.alert(12)) + (S.level === 'calibrated' ? 'Calibrated colour' : esc(st.pill)) + '</span>';
+    return '<div class="colour-block" style="background:' + r.hex + '"><div class="left">' + pill +
+      '<div class="hexrow"><b>' + r.hex + '</b><small>RGB ' + r.rgb.join(', ') + '</small>' + raw + '</div></div>' +
+      '<button class="icon-btn copy-btn" data-act="copy" aria-label="Copy hex code">' + I.copy() + '</button></div>' +
+      '<div class="row2">' + scoreCard(r, false) + colouring(r) + '</div>' +
+      '<div class="explain"><p>' + esc(r.explanation) + '</p>' + tipBlock(r) + '</div>' +
+      factors(r, true) +
+      '<div class="grow"></div>' +
+      '<div class="actions-right"><button class="btn-primary" data-act="restart">' + I.again() + 'Check another</button></div>';
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Render                                                           */
+  /* ---------------------------------------------------------------- */
+  function render() {
+    var desk = isDesktop();
+    // keep the flow consistent when the layout changes (rotate / resize)
+    if (desk && S.screen === 'score') { S.screen = 'work'; S.mode = 'result'; }
+    if (!desk && S.screen === 'work' && S.mode === 'result') { S.screen = 'score'; }
+    if (!S.img && S.screen !== 'start') S.screen = 'start';
+
+    app.setAttribute('data-layout', desk ? 'desktop' : 'mobile');
+    app.setAttribute('data-screen', S.screen);
+    app.setAttribute('data-mode', S.mode);
+
+    var html;
+    if (S.screen === 'start') html = desk ? startDesktop() : startMobile();
+    else if (S.screen === 'score') html = scoreMobile();
+    else html = desk ? workDesktop() : workMobile();
+    main.innerHTML = html;
+
+    var box = main.querySelector('.stage-box');
+    if (box) { box.appendChild(stage); fitStage(); }
+    hideLoupe();
+  }
+
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      var desk = isDesktop();
+      if (desk !== (app.getAttribute('data-layout') === 'desktop')) render(); else fitStage();
+    }, 60);
+  });
+  if (DESKTOP.addEventListener) DESKTOP.addEventListener('change', render);
+
+  /* ---------------------------------------------------------------- */
+  /* Offline support (only when served over https as a normal page)   */
+  /* ---------------------------------------------------------------- */
+  if (!window.__SINGLE_FILE__ && 'serviceWorker' in navigator && canHistory &&
+      (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* offline cache is optional */ });
+    });
+  }
+
+  // Small hook for automated tests
+  window.__colourCheck = { state: S, render: render, loadFile: loadFile, commit: commit, actions: ACTIONS };
+
+  render();
+})();
+
+</script>
+</body>
+</html>

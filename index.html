@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Colour Check</title>
+<meta name="description" content="Check how well a shirt colour suits you. Runs entirely in your browser; photos never leave your device.">
+<meta name="theme-color" content="#EFEFEF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Colour Check">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" class="app" data-layout="mobile" data-screen="start">
+  <header class="topbar">
+    <div class="brand">Colour Check</div>
+    <div class="privacy">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+      Processed on this device
+    </div>
+  </header>
+  <main id="main" class="main"></main>
+  <input type="file" id="pickCamera" accept="image/*" capture="environment" hidden>
+  <input type="file" id="pickFile" accept="image/*" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript">Colour Check needs JavaScript to read colours from your photo. Nothing is uploaded.</p></noscript>
+</div>
+<script src="profile.js"></script>
+<script src="colour.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
